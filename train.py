@@ -5,6 +5,32 @@ import glob
 import numpy as np
 
 
+MAE_THRESHOLD = 0.0001
+
+
+def read_data(img_data):
+    lst = []
+    for y in range(120):
+        for x in range(160):
+            r = img_data[x, y][0]
+            
+            if r < 100:
+                r = 0
+            else:
+                r = 1
+
+            lst.append(r)
+
+    return lst
+
+
+class stopCallback(tf.keras.callbacks.Callback): 
+    def on_epoch_end(self, epoch, logs={}): 
+        if(logs.get('mae') < MAE_THRESHOLD):   
+            print("\nReached %2.2f% MAE; stopping training." %(MAE_THRESHOLD))   
+            self.model.stop_training = True
+
+
 train_x = []
 train_y = []
 
@@ -18,11 +44,8 @@ for f in files:
 
 # Inspect each set.
 for time in times:
-    inp = []
-    out = []
-
-    # Concatenate the inputs.
-    for idx in range(3):
+    for idx in range(2):
+        inp = []
         files = glob.glob("img/screen-{0}-{1}-*.jpg".format(time, idx))
         img = Image.open(files[0])
         img_data = img.load()
@@ -30,50 +53,19 @@ for time in times:
         # Get button state.
         btn = files[0].split("-")[3].replace(".jpg", "")
 
-        for y in range(120):
-            for x in range(160):
-                r = img_data[x, y][0]
-                
-                if r < 100:
-                    r = 0
-                elif r < 150:
-                    r = 1 #130
-                else:
-                    r = 2 #234
-
-                inp.append(r)
-
-        inp.append(btn)
-
-    train_x.append(inp)
-
-    # Prepare the outputs.
-    files = glob.glob("img/screen-{0}-3-*.jpg".format(time))
-    img = Image.open(files[0])
-    img_data = img.load()
-
-    # Get button state.
-    btn = int(files[0].split("-")[3].replace(".jpg", ""))
-
-    for y in range(120):
-        for x in range(160):
-            r = img_data[x, y][0]
-            
-            if r < 100:
-                r = 0
-            elif r < 150:
-                r = 1 #130
-            else:
-                r = 2 #234
-
-            out.append(r)
-    
-    train_y.append(out)
+        inp = read_data(img_data)
+        
+        if idx == 0:
+            for r in range(10):
+                inp.append(btn)
+            train_x.append(inp)
+        else:
+            train_y.append(inp)
 
 print("Done reading in image data.")
 
 # Build the model.
-input_size = 57603
+input_size = 19210
 output_size = 19200
 
 model = keras.Sequential([
@@ -87,8 +79,8 @@ model = keras.Sequential([
 
 # Compile the model.
 model.compile(optimizer='adam',
-              loss='mse',
-              metrics=['accuracy'])
+              loss='mae',
+              metrics=['mae'])
 
 # Print the model summary.
 model.summary()
@@ -97,11 +89,12 @@ model.summary()
 train_x = np.asarray(train_x).astype('float32')
 train_y = np.asarray(train_y).astype('float32')
 
-model.fit(train_x, train_y, batch_size=64, epochs=50, verbose=2, validation_split=0.2)
+callbacks = stopCallback()
+model.fit(train_x, train_y, batch_size=64, epochs=500, verbose=2, validation_split=0.2, callbacks=[callbacks])
 model.save("pong.keras")
 
-#model = keras.models.load_model("pong.keras")
-# model.evaluate(test_x ,test_y)
-#res = model(np.expand_dims(train_x[99], axis=0), training=False)
-print(res)
-#np.savetxt('test.txt', res, fmt='%d')
+# model = keras.models.load_model("pong.keras")
+# # model.evaluate(test_x ,test_y)
+# res = model(np.expand_dims(train_x[99], axis=0), training=False)
+# # print(res)
+# np.savetxt('test.txt', res, fmt='%d')
