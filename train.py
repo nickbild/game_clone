@@ -24,7 +24,7 @@ def read_data(img_data):
     return lst
 
 
-class stopCallback(tf.keras.callbacks.Callback): 
+class stopCallback(keras.callbacks.Callback): 
     def on_epoch_end(self, epoch, logs={}): 
         if(logs.get('mae') < MAE_THRESHOLD):   
             print("\nReached %2.2f% MAE; stopping training." %(MAE_THRESHOLD))   
@@ -62,6 +62,8 @@ for time in times:
         else:
             train_y.append(inp)
 
+    # break
+
 print("Done reading in image data.")
 
 # Build the model.
@@ -95,6 +97,6 @@ model.save("pong.keras")
 
 # model = keras.models.load_model("pong.keras")
 # # model.evaluate(test_x ,test_y)
-# res = model(np.expand_dims(train_x[99], axis=0), training=False)
+# res = model(np.expand_dims(train_x[0], axis=0), training=False)
 # # print(res)
 # np.savetxt('test.txt', res, fmt='%d')
