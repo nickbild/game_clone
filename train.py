@@ -3,6 +3,7 @@ from tensorflow import keras
 from PIL import Image
 import glob
 import numpy as np
+import os
 
 
 MAE_THRESHOLD = 0.0001
@@ -36,31 +37,49 @@ train_y = []
 
 print ("Reading in image data...")
 
-# Get all sets of files (3 input, 1 expected output).
+# Get all sets of files (1 input, 1 expected output).
 files = glob.glob("img/screen-*.jpg")
 times = {}
 for f in files:
     times[f.split("-")[1]] = True
 
 # Inspect each set.
-for time in times:
+for t in times:
     for idx in range(2):
-        inp = []
-        files = glob.glob("img/screen-{0}-{1}-*.jpg".format(time, idx))
-        img = Image.open(files[0])
-        img_data = img.load()
+        files = glob.glob("img/screen-{0}-{1}-*.jpg".format(t, idx))
+        cache = "img.cache/" + files[0].split("/")[-1] + ".txt"
 
-        # Get button state.
-        btn = files[0].split("-")[3].replace(".jpg", "")
+        if os.path.isfile(cache):
+            f = open(cache, "r")
+            if idx == 0:
+                inp = f.readline().split(',')
+                train_x.append(inp)
+            else:
+                inp = f.readline().split(',')
+                train_y.append(inp)
+            f.close()
 
-        inp = read_data(img_data)
-        
-        if idx == 0:
-            for r in range(10):
-                inp.append(btn)
-            train_x.append(inp)
         else:
-            train_y.append(inp)
+            inp = []
+
+            img = Image.open(files[0])
+            img_data = img.load()
+
+            # Get button state.
+            btn = files[0].split("-")[3].replace(".jpg", "")
+
+            inp = read_data(img_data)
+            
+            if idx == 0:
+                for r in range(10):
+                    inp.append(btn)
+                train_x.append(inp)
+            else:
+                train_y.append(inp)
+
+            f = open(cache, "w")
+            f.write(",".join(str(i) for i in inp))
+            f.close()
 
     # break
 
