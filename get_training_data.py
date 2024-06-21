@@ -15,19 +15,19 @@ print("Go!")
 for _ in range(1000):
     cur_time = time.time()
 
-    for cnt in range(2):
+    for cnt in range(6):
         # Get state of inputs.
-        state = "2"
+        state = 0
         if keyboard.is_pressed('up'):
-            state ="3"
-        elif keyboard.is_pressed('down'):
-            state ="4"
-        elif keyboard.is_pressed('w'):
-            state ="5"
-        elif keyboard.is_pressed('s'):
-            state ="6"
+            state += 1
+        if keyboard.is_pressed('down'):
+            state += 2
+        if keyboard.is_pressed('w'):
+            state += 4
+        if keyboard.is_pressed('s'):
+            state += 8
         
         # Capture a screenshot.
-        os.system("convert x:{0} img/screen-{1}-{2}-{3}.jpg".format(window_id, cur_time, cnt, state))
+        os.system("convert x:{0} img/screen-{1}-{2}-{3}.jpg".format(window_id, cur_time, cnt, str(state)))
 
         time.sleep(0.05)
