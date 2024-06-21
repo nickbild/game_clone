@@ -119,18 +119,28 @@ output_size = 19200
 # ])
 
 model = keras.Sequential()
-model.add(keras.layers.Input((160, 121, 1)))
+model.add(keras.layers.Input((121, 160, 1)))
 model.add(keras.layers.Conv2D(32, (3, 3), activation='relu'))
 model.add(keras.layers.MaxPooling2D((2, 2)))
-model.add(keras.layers.Dropout(0.2))
 model.add(keras.layers.Conv2D(24, (3, 3), activation='relu'))
 model.add(keras.layers.MaxPooling2D((2, 2)))
 model.add(keras.layers.Flatten())
-model.add(keras.layers.Dense(800, activation='relu'))
+model.add(keras.layers.Dense(400, activation='relu'))
 model.add(keras.layers.Dense(output_size))
 
+# model = keras.Sequential()
+# model.add(keras.layers.Input((121, 160, 1)))
+# model.add(keras.layers.ConvLSTM2D(filters=64, kernel_size=(3, 3), padding="same", return_sequences=True, activation="relu"))
+# model.add(keras.layers.BatchNormalization())
+# model.add(keras.layers.ConvLSTM2D(filters=64, kernel_size=(1, 1), padding="same", return_sequences=True, activation="relu"))
+# model.add(keras.layers.BatchNormalization())
+# model.add(keras.layers.Flatten())
+# model.add(keras.layers.Dense(800, activation='relu'))
+# model.add(keras.layers.Dense(output_size))
+
 # Compile the model.
-model.compile(optimizer='adam',
+optimizer = keras.optimizers.Adam(0.0001)
+model.compile(optimizer=optimizer,
               loss='mse',
               metrics=['mse', 'mae'])
 
@@ -148,11 +158,11 @@ else:
     train_y = np.loadtxt('train_y.txt', dtype=float)
 
 # Reshape for the CNN input.
-train_x = np.reshape(train_x, (len(train_x), 160, 121, 1))
+train_x = np.reshape(train_x, (len(train_x), 121, 160, 1))
 
 # Train the model.
 callbacks = stopCallback()
-model.fit(train_x, train_y, batch_size=32, epochs=500, verbose=2, validation_split=0.2, callbacks=[callbacks])
+model.fit(train_x, train_y, batch_size=32, epochs=100, verbose=2, validation_split=0.2, callbacks=[callbacks])
 model.save("pong.keras")
 
 # model = keras.models.load_model("pong.keras")
