@@ -7,7 +7,7 @@ import os
 import datetime
 
 
-MSE_THRESHOLD = 0.0001
+MSE_THRESHOLD = 0.00065
 LOAD_SAVED_DATA = True
 TEST_MODE = False
 TEST_SAMPLES = 5
@@ -31,8 +31,8 @@ def read_data(img_data):
 
 class stopCallback(keras.callbacks.Callback): 
     def on_epoch_end(self, epoch, logs={}): 
-        if(logs.get('val_loss') <= MSE_THRESHOLD):   
-            print("\nReached {0} MSE; stopping training.".format(MSE_THRESHOLD))   
+        if(logs.get('val_loss') <= MSE_THRESHOLD) or os.path.isfile("training.stop"):   
+            print("\nReached {0} MSE; stopping training.".format(MSE_THRESHOLD)) 
             self.model.stop_training = True
 
 
@@ -53,41 +53,35 @@ if not LOAD_SAVED_DATA:
     # Inspect each set.
     cnt = 0
     for t in times:
-        for idx in range(2):
-            files = glob.glob("img/screen-{0}-{1}-*.jpg".format(t, idx))
-            cache = "img.cache/" + files[0].split("/")[-1] + ".txt"
+        inp_x = []
+        inp_y = []
+        tmp = []
 
-            if os.path.isfile(cache):
-                f = open(cache, "r")
-                if idx == 0:
-                    inp = f.readline().split(',')
-                    train_x.append(inp)
-                else:
-                    inp = f.readline().split(',')
-                    train_y.append(inp)
-                f.close()
+        for idx in range(5):
+            files_x = glob.glob("img/screen-{0}-{1}-*.jpg".format(t, idx))
+            files_y = glob.glob("img/screen-{0}-{1}-*.jpg".format(t, idx+1))
 
-            else:
-                inp = []
+            img_x = Image.open(files_x[0])
+            img_data_x = img_x.load()
 
-                img = Image.open(files[0])
-                img_data = img.load()
+            img_y = Image.open(files_y[0])
+            img_data_y = img_y.load()
 
-                # Get button state.
-                btn = files[0].split("-")[3].replace(".jpg", "")
+            # Get button state.
+            btn = files_x[0].split("-")[3].replace(".jpg", "")
 
-                inp = read_data(img_data)
-                
-                if idx == 0:
-                    for r in range(160):
-                        inp.append(btn)
-                    train_x.append(inp)
-                else:
-                    train_y.append(inp)
+            tmp = read_data(img_data_x)
+            for _ in range(160):
+                tmp.append(btn)
+            inp_x.append(tmp)
 
-                f = open(cache, "w")
-                f.write(",".join(str(i) for i in inp))
-                f.close()
+            tmp = read_data(img_data_y)
+            for _ in range(160):
+                tmp.append(0)
+            inp_y.append(tmp)
+
+        train_x.append(inp_x)    
+        train_y.append(inp_y)
 
         if TEST_MODE:
             cnt += 1
@@ -97,49 +91,15 @@ if not LOAD_SAVED_DATA:
     print("Done reading in image data ({0}).".format(datetime.datetime.now()))
 
 # Build the model.
-input_size = 19360
-output_size = 19200
-
-# model = keras.Sequential([
-#     keras.layers.Input(shape=(input_size,)),
-#     keras.layers.Dense(units=800, activation='relu'),
-#     keras.layers.Dense(units=600, activation='relu'),
-#     keras.layers.Dense(units=400, activation='relu'),
-#     keras.layers.Dense(units=400, activation='relu'),
-#     keras.layers.Dense(units=400, activation='relu'),
-#     keras.layers.Dense(units=400, activation='relu'),
-#     keras.layers.Dense(units=400, activation='relu'),
-#     keras.layers.Dense(units=400, activation='relu'),
-#     keras.layers.Dense(units=400, activation='relu'),
-#     keras.layers.Dense(units=400, activation='relu'),
-#     keras.layers.Dense(units=400, activation='relu'),
-#     keras.layers.Dense(units=400, activation='relu'),
-#     keras.layers.Dense(units=400, activation='relu'),
-#     keras.layers.Dense(units=output_size)
-# ])
-
 model = keras.Sequential()
-model.add(keras.layers.Input((121, 160, 1)))
-model.add(keras.layers.Conv2D(32, (3, 3), activation='relu'))
-model.add(keras.layers.MaxPooling2D((2, 2)))
-model.add(keras.layers.Conv2D(24, (3, 3), activation='relu'))
-model.add(keras.layers.MaxPooling2D((2, 2)))
-model.add(keras.layers.Flatten())
-model.add(keras.layers.Dense(400, activation='relu'))
-model.add(keras.layers.Dense(output_size))
-
-# model = keras.Sequential()
-# model.add(keras.layers.Input((121, 160, 1)))
-# model.add(keras.layers.ConvLSTM2D(filters=64, kernel_size=(3, 3), padding="same", return_sequences=True, activation="relu"))
-# model.add(keras.layers.BatchNormalization())
-# model.add(keras.layers.ConvLSTM2D(filters=64, kernel_size=(1, 1), padding="same", return_sequences=True, activation="relu"))
-# model.add(keras.layers.BatchNormalization())
-# model.add(keras.layers.Flatten())
-# model.add(keras.layers.Dense(800, activation='relu'))
-# model.add(keras.layers.Dense(output_size))
+model.add(keras.layers.Input((5, 121, 160, 1)))
+model.add(keras.layers.ConvLSTM2D(filters=24, kernel_size=(3, 3), padding="same", return_sequences=True, activation="relu"))
+model.add(keras.layers.BatchNormalization())
+model.add(keras.layers.ConvLSTM2D(filters=16, kernel_size=(2, 2), padding="same", return_sequences=True, activation="relu"))
+model.add(keras.layers.Conv3D(filters=1, kernel_size=(3, 3, 3), activation="relu", padding="same"))
 
 # Compile the model.
-optimizer = keras.optimizers.Adam(0.0001)
+optimizer = keras.optimizers.Adam(0.001)
 model.compile(optimizer=optimizer,
               loss='mse',
               metrics=['mse', 'mae'])
@@ -151,22 +111,18 @@ if not LOAD_SAVED_DATA:
     train_x = np.asarray(train_x).astype('float32')
     train_y = np.asarray(train_y).astype('float32')
     if not TEST_MODE:
-        np.savetxt('train_x.txt', train_x, fmt='%d')
-        np.savetxt('train_y.txt', train_y, fmt='%d')
+        np.save('train_x.npy', train_x)
+        np.save('train_y.npy', train_y)
 else:
-    train_x = np.loadtxt('train_x.txt', dtype=float)
-    train_y = np.loadtxt('train_y.txt', dtype=float)
+    train_x = np.load('train_x.npy')
+    train_y = np.load('train_y.npy')
 
-# Reshape for the CNN input.
-train_x = np.reshape(train_x, (len(train_x), 121, 160, 1))
+# Reshape for the ConvLSTM input.
+train_x = np.reshape(train_x, (len(train_x), 5, 121, 160, 1))
+train_y = np.reshape(train_y, (len(train_y), 5, 121, 160, 1))
 
 # Train the model.
 callbacks = stopCallback()
-model.fit(train_x, train_y, batch_size=32, epochs=100, verbose=2, validation_split=0.2, callbacks=[callbacks])
+model.fit(train_x, train_y, batch_size=16, epochs=100, verbose=2, validation_split=0.2, callbacks=[callbacks])
 model.save("pong.keras")
-
-# model = keras.models.load_model("pong.keras")
-# # model.evaluate(test_x ,test_y)
-# res = model(np.expand_dims(train_x[0], axis=0), training=False)
-# # print(res)
-# np.savetxt('test.txt', res, fmt='%d')
+print("Model training complete!")
