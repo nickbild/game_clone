@@ -1,0 +1,32 @@
+########
+
+15K pairs
+
+model = keras.Sequential()
+model.add(keras.layers.Input((160, 121, 1)))
+model.add(keras.layers.Conv2D(32, (3, 3), activation='relu'))
+model.add(keras.layers.MaxPooling2D((2, 2)))
+model.add(keras.layers.Dropout(0.2))
+model.add(keras.layers.Conv2D(24, (3, 3), activation='relu'))
+model.add(keras.layers.MaxPooling2D((2, 2)))
+model.add(keras.layers.Flatten())
+model.add(keras.layers.Dense(800, activation='relu'))
+model.add(keras.layers.Dense(output_size))
+
+optimizer = keras.optimizers.Adam(0.0001)
+
+Epoch 100/100
+375/375 - 173s - 462ms/step - loss: 7.0547e-04 - mae: 0.0087 - mse: 7.0547e-04 - val_loss: 0.0021 - val_mae: 0.0117 - val_mse: 0.0021
+
+****
+
+6K total. batch 16.
+
+model = keras.Sequential()
+model.add(keras.layers.Input((5, 121, 160, 1)))
+model.add(keras.layers.ConvLSTM2D(filters=24, kernel_size=(3, 3), padding="same", return_sequences=True, activation="relu"))
+model.add(keras.layers.BatchNormalization())
+model.add(keras.layers.ConvLSTM2D(filters=16, kernel_size=(2, 2), padding="same", return_sequences=True, activation="relu"))
+model.add(keras.layers.Conv3D(filters=1, kernel_size=(3, 3, 3), activation="relu", padding="same"))
+
+50/50 - 372s - 7s/step - loss: 5.9369e-04 - mae: 0.0012 - mse: 5.9369e-04 - val_loss: 6.5797e-04 - val_mae: 0.0014 - val_mse: 6.5813e-04
