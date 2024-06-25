@@ -8,7 +8,7 @@ import datetime
 
 
 MSE_THRESHOLD = 0.00065
-LOAD_SAVED_DATA = True
+LOAD_SAVED_DATA = False
 TEST_MODE = False
 TEST_SAMPLES = 5
 
@@ -57,7 +57,7 @@ if not LOAD_SAVED_DATA:
         inp_y = []
         tmp = []
 
-        for idx in range(5):
+        for idx in range(2):
             files_x = glob.glob("img/screen-{0}-{1}-*.jpg".format(t, idx))
             files_y = glob.glob("img/screen-{0}-{1}-*.jpg".format(t, idx+1))
 
@@ -118,8 +118,8 @@ else:
     train_y = np.load('train_y.npy')
 
 # Reshape for the ConvLSTM input.
-train_x = np.reshape(train_x, (len(train_x), 5, 121, 160, 1))
-train_y = np.reshape(train_y, (len(train_y), 5, 121, 160, 1))
+train_x = np.reshape(train_x, (len(train_x), 2, 121, 160, 1))
+train_y = np.reshape(train_y, (len(train_y), 2, 121, 160, 1))
 
 # Train the model.
 callbacks = stopCallback()

@@ -12,10 +12,10 @@ for i in range(10, -1, -1):
     time.sleep(1)
 print("Go!")
 
-for _ in range(1000):
+for _ in range(5000):
     cur_time = time.time()
 
-    for cnt in range(6):
+    for cnt in range(3):
         # Get state of inputs.
         state = 0
         if keyboard.is_pressed('up'):
@@ -30,4 +30,4 @@ for _ in range(1000):
         # Capture a screenshot.
         os.system("convert x:{0} img/screen-{1}-{2}-{3}.jpg".format(window_id, cur_time, cnt, str(state)))
 
-        time.sleep(0.05)
+        time.sleep(0.03)
