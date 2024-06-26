@@ -7,8 +7,8 @@ import os
 import datetime
 
 
-MSE_THRESHOLD = 0.00065
-LOAD_SAVED_DATA = False
+MSE_THRESHOLD = 0.00001
+LOAD_SAVED_DATA = True
 TEST_MODE = False
 TEST_SAMPLES = 5
 
@@ -92,11 +92,13 @@ if not LOAD_SAVED_DATA:
 
 # Build the model.
 model = keras.Sequential()
-model.add(keras.layers.Input((5, 121, 160, 1)))
+model.add(keras.layers.Input((2, 121, 160, 1)))
 model.add(keras.layers.ConvLSTM2D(filters=24, kernel_size=(3, 3), padding="same", return_sequences=True, activation="relu"))
 model.add(keras.layers.BatchNormalization())
 model.add(keras.layers.ConvLSTM2D(filters=16, kernel_size=(2, 2), padding="same", return_sequences=True, activation="relu"))
-model.add(keras.layers.Conv3D(filters=1, kernel_size=(3, 3, 3), activation="relu", padding="same"))
+model.add(keras.layers.BatchNormalization())
+model.add(keras.layers.ConvLSTM2D(filters=12, kernel_size=(1, 1), padding="same", return_sequences=True, activation="relu"))
+model.add(keras.layers.Conv3D(filters=12, kernel_size=(3, 3, 3), activation="relu", padding="same"))
 
 # Compile the model.
 optimizer = keras.optimizers.Adam(0.001)
@@ -123,6 +125,6 @@ train_y = np.reshape(train_y, (len(train_y), 2, 121, 160, 1))
 
 # Train the model.
 callbacks = stopCallback()
-model.fit(train_x, train_y, batch_size=16, epochs=100, verbose=2, validation_split=0.2, callbacks=[callbacks])
+model.fit(train_x, train_y, batch_size=16, epochs=500, verbose=2, validation_split=0.2, callbacks=[callbacks])
 model.save("pong.keras")
 print("Model training complete!")

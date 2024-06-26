@@ -30,3 +30,19 @@ model.add(keras.layers.ConvLSTM2D(filters=16, kernel_size=(2, 2), padding="same"
 model.add(keras.layers.Conv3D(filters=1, kernel_size=(3, 3, 3), activation="relu", padding="same"))
 
 50/50 - 372s - 7s/step - loss: 5.9369e-04 - mae: 0.0012 - mse: 5.9369e-04 - val_loss: 6.5797e-04 - val_mae: 0.0014 - val_mse: 6.5813e-04
+
+****
+
+18K total. batch 16.
+
+model = keras.Sequential()
+model.add(keras.layers.Input((2, 121, 160, 1)))
+model.add(keras.layers.ConvLSTM2D(filters=24, kernel_size=(3, 3), padding="same", return_sequences=True, activation="relu"))
+model.add(keras.layers.BatchNormalization())
+model.add(keras.layers.ConvLSTM2D(filters=16, kernel_size=(2, 2), padding="same", return_sequences=True, activation="relu"))
+model.add(keras.layers.Conv3D(filters=1, kernel_size=(3, 3, 3), activation="relu", padding="same"))
+
+Epoch 12/100
+
+Reached 0.00065 MSE; stopping training.
+300/300 - 769s - 3s/step - loss: 6.5635e-04 - mae: 0.0013 - mse: 6.5635e-04 - val_loss: 6.4876e-04 - val_mae: 0.0011 - val_mse: 6.4876e-04
