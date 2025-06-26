@@ -8,11 +8,11 @@ pygame.init()
 fps = pygame.time.Clock()
 RED = (255,0,0)
 BLACK = (0,0,0)
-WIDTH = 160
-HEIGHT = 120       
-BALL_RADIUS = 4
-PAD_WIDTH = 6
-PAD_HEIGHT = 24
+WIDTH = 800
+HEIGHT = 600       
+BALL_RADIUS = 10
+PAD_WIDTH = 10
+PAD_HEIGHT = 100
 HALF_PAD_WIDTH = PAD_WIDTH / 2
 HALF_PAD_HEIGHT = PAD_HEIGHT / 2
 ball_pos = [0,0]
@@ -27,8 +27,8 @@ pygame.display.set_caption('Pong')
 def ball_init():
     global ball_pos, ball_vel
     ball_pos = [WIDTH/2, HEIGHT/2]
-    horz = 1
-    vert = 1
+    horz = 3
+    vert = 3
             
     ball_vel = [horz,-vert]
 
@@ -47,18 +47,18 @@ def draw(canvas):
            
     canvas.fill(BLACK)
 
-    if paddle1_pos[1] > HALF_PAD_HEIGHT and paddle1_pos[1] < HEIGHT - HALF_PAD_HEIGHT:
+    if paddle1_pos[1] > HALF_PAD_HEIGHT + 10 and paddle1_pos[1] < HEIGHT - HALF_PAD_HEIGHT - 10:
         paddle1_pos[1] += paddle1_vel
-    elif paddle1_pos[1] == HALF_PAD_HEIGHT and paddle1_vel > 0:
+    elif paddle1_pos[1] == HALF_PAD_HEIGHT + 10 and paddle1_vel > 0:
         paddle1_pos[1] += paddle1_vel
-    elif paddle1_pos[1] == HEIGHT - HALF_PAD_HEIGHT and paddle1_vel < 0:
+    elif paddle1_pos[1] == HEIGHT - HALF_PAD_HEIGHT - 10 and paddle1_vel < 0:
         paddle1_pos[1] += paddle1_vel
     
-    if paddle2_pos[1] > HALF_PAD_HEIGHT and paddle2_pos[1] < HEIGHT - HALF_PAD_HEIGHT:
+    if paddle2_pos[1] > HALF_PAD_HEIGHT + 10 and paddle2_pos[1] < HEIGHT - HALF_PAD_HEIGHT - 10:
         paddle2_pos[1] += paddle2_vel
-    elif paddle2_pos[1] == HALF_PAD_HEIGHT and paddle2_vel > 0:
+    elif paddle2_pos[1] == HALF_PAD_HEIGHT + 10 and paddle2_vel > 0:
         paddle2_pos[1] += paddle2_vel
-    elif paddle2_pos[1] == HEIGHT - HALF_PAD_HEIGHT and paddle2_vel < 0:
+    elif paddle2_pos[1] == HEIGHT - HALF_PAD_HEIGHT - 10 and paddle2_vel < 0:
         paddle2_pos[1] += paddle2_vel
 
     ball_pos[0] += int(ball_vel[0])
@@ -90,13 +90,13 @@ def keydown(event):
     global paddle1_vel, paddle2_vel
     
     if event.key == K_UP:
-        paddle2_vel = -2
+        paddle2_vel = -8
     elif event.key == K_DOWN:
-        paddle2_vel = 2
+        paddle2_vel = 8
     elif event.key == K_w:
-        paddle1_vel = -2
+        paddle1_vel = -8
     elif event.key == K_s:
-        paddle1_vel = 2
+        paddle1_vel = 8
 
 
 def keyup(event):
@@ -109,6 +109,8 @@ def keyup(event):
 
 
 init()
+
+f = open("game_data.txt", "a")
 
 # Game loop.
 while True:
@@ -124,4 +126,9 @@ while True:
             sys.exit()
             
     pygame.display.update()
+
+    f.write("{0} {1} {2} {3} {4} {5}\n".format(int(paddle1_pos[1]), int(paddle2_pos[1]), int(ball_pos[0]), int(ball_pos[1]), int(paddle1_vel), int(paddle2_vel)))
+
     fps.tick(60)
+
+f.close()
