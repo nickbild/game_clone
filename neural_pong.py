@@ -57,11 +57,7 @@ while True:
     # Predict the next frame.
     new_prediction = model.predict(past_positions, verbose=0)
 
-    # Rotate the latest prediction into the past positions array.
-    past_positions[0][0] = past_positions[0][1]
-    past_positions[0][1] = np.append(np.rint(new_prediction[0]), [paddle1_vel, paddle2_vel])
-
-    # Capture controls.
+    # Capture state of controls.
     for event in pygame.event.get():
         if event.type == KEYDOWN:
             keydown(event)
@@ -70,6 +66,10 @@ while True:
         elif event.type == QUIT:
             pygame.quit()
             sys.exit()
+
+    # Rotate the latest prediction into the past positions array.
+    past_positions[0][0] = past_positions[0][1]
+    past_positions[0][1] = np.append(np.rint(new_prediction[0]), [paddle1_vel, paddle2_vel])
 
     # Update the display.
     window.fill(BLACK)
