@@ -7,7 +7,7 @@ import glob
 
 
 MSE_THRESHOLD = 0.5
-CONTINUE_TRAINING_MODEL = "pong.2025-07-08_2.keras"
+CONTINUE_TRAINING_MODEL = ""
 
 
 class stopCallback(keras.callbacks.Callback): 
@@ -70,6 +70,7 @@ for filename in glob.glob("game_data_*.txt"):
         train_x.append([[paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1], [paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2]])
         # Dense:
         # train_x.append([paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1, paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2])
+        
         train_y.append([paddle1_pos_3, paddle2_pos_3, ball_x_3, ball_y_3])
 
     data = [] # Free up memory.
@@ -83,13 +84,23 @@ if CONTINUE_TRAINING_MODEL != "":
 else:
     # Build the model.
     model = keras.Sequential()
-    model.add(keras.layers.InputLayer(shape=(2, 6,)))
-    model.add(keras.layers.LSTM(160, activation='relu'))
+    model.add(keras.layers.InputLayer(shape=(2, 6, 1,)))
+    model.add(keras.layers.ConvLSTM1D(96, 2, activation='relu', return_sequences=True))
+    model.add(keras.layers.ConvLSTM1D(64, 2, activation="relu"))
+    model.add(keras.layers.Flatten())
+    model.add(keras.layers.Dense(4))
 
+    # mv2:
+    # model = keras.Sequential()
+    # model.add(keras.layers.InputLayer(shape=(2, 6,)))
+    # model.add(keras.layers.LSTM(128, activation='relu', return_sequences=True))
+    # model.add(keras.layers.LSTM(96, activation="relu"))
+    # model.add(keras.layers.Dense(4))
+
+    # tests:
     # model.add(keras.layers.LSTM(32, return_sequences=True, activation="relu"))
     # model.add(keras.layers.LSTM(32, activation="relu"))
     # model.add(keras.layers.Dense(64, activation="relu"))
-
     # model.add(keras.layers.Conv1D(128, 2, activation='relu', padding='same'))
     # model.add(keras.layers.MaxPooling1D(2))
     # model.add(keras.layers.Conv1D(128, 2, activation='relu', padding='same'))
@@ -98,9 +109,7 @@ else:
     # model.add(keras.layers.MaxPooling1D(2, padding="same"))
     # model.add(keras.layers.LSTM(96, return_sequences=True, activation="relu"))
     # model.add(keras.layers.LSTM(64, activation="relu"))
-
-    model.add(keras.layers.Dense(64, activation='relu'))
-    model.add(keras.layers.Dense(4))
+    # model.add(keras.layers.Dense(64, activation='relu'))
 
     # Compile the model.
     optimizer = keras.optimizers.Adam(0.0001)
