@@ -24,21 +24,28 @@ data = []
 
 print ("Reading in game data ({0})...".format(datetime.datetime.now()))
 
-# Read the game data into memory.
 for filename in glob.glob("game_data_*.txt"):
+    # Read the game data into memory.
+    data = []
     with open(filename, "r") as f:
         for line in f:
             if line.strip() == "":
                 continue
-            paddle1_pos, paddle2_pos, ball_x, ball_y, paddle1_vel, paddle2_vel = map(int, line.split())
+            pieces = line.strip().split()
+            paddle1_pos = int(pieces[0])
+            paddle2_pos = int(pieces[1])
+            ball_x = int(pieces[2])
+            ball_y = int(pieces[3])
+            paddle1_vel = int(pieces[4])
+            paddle2_vel = int(pieces[5])
             data.append([paddle1_pos, paddle2_pos, ball_x, ball_y, paddle1_vel, paddle2_vel])        
 
     # Create the training data structure.
     step = 1
     if filename.endswith("game_data_10.txt"):
-        step = 3
+        step = 6
 
-    for pos in range(0, len(data)-2, step):
+    for pos in range(0, len(data)-5, step):
         paddle1_pos_1 = data[pos][0] 
         paddle2_pos_1 = data[pos][1]
         ball_x_1 = data[pos][2]
@@ -60,20 +67,35 @@ for filename in glob.glob("game_data_*.txt"):
         paddle1_vel_3 = data[pos+2][4]
         paddle2_vel_3 = data[pos+2][5]
 
-        # Ignore breaks in data collection that introduce artificially large changes in screen element positions.
-        if abs(paddle1_pos_1 - paddle1_pos_2) > 8 or abs(paddle1_pos_2 - paddle1_pos_3) > 8:
-            continue
-        if abs(paddle2_pos_1 - paddle2_pos_2) > 8 or abs(paddle2_pos_2 - paddle2_pos_3) > 8:
-            continue
+        paddle1_pos_4 = data[pos+3][0] 
+        paddle2_pos_4 = data[pos+3][1]
+        ball_x_4 = data[pos+3][2]
+        ball_y_4 = data[pos+3][3]
+        paddle1_vel_4 = data[pos+3][4]
+        paddle2_vel_4 = data[pos+3][5]
+
+        paddle1_pos_5 = data[pos+4][0] 
+        paddle2_pos_5 = data[pos+4][1]
+        ball_x_5 = data[pos+4][2]
+        ball_y_5 = data[pos+4][3]
+        paddle1_vel_5 = data[pos+4][4]
+        paddle2_vel_5 = data[pos+4][5]
+
+        paddle1_pos_6 = data[pos+5][0] 
+        paddle2_pos_6 = data[pos+5][1]
+        ball_x_6 = data[pos+5][2]
+        ball_y_6 = data[pos+5][3]
+        paddle1_vel_6 = data[pos+5][4]
+        paddle2_vel_6 = data[pos+5][5]
 
         # LSTM:
-        train_x.append([[paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1], [paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2]])
+        # train_x.append([[paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1], [paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2]])
+        train_x.append([ [paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1], [paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2], 
+            [paddle1_pos_3, paddle2_pos_3, ball_x_3, ball_y_3, paddle1_vel_3, paddle2_vel_3], [paddle1_pos_4, paddle2_pos_4, ball_x_4, ball_y_4, paddle1_vel_4, paddle2_vel_4],
+            [paddle1_pos_5, paddle2_pos_5, ball_x_5, ball_y_5, paddle1_vel_5, paddle2_vel_5] ])
         # Dense:
         # train_x.append([paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1, paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2])
-        
-        train_y.append([paddle1_pos_3, paddle2_pos_3, ball_x_3, ball_y_3])
-
-    data = [] # Free up memory.
+        train_y.append([paddle1_pos_6, paddle2_pos_6, ball_x_6, ball_y_6])
 
 print("Done reading in game data ({0}).".format(datetime.datetime.now()))
 
@@ -83,11 +105,19 @@ if CONTINUE_TRAINING_MODEL != "":
 
 else:
     # Build the model.
+    # model = keras.Sequential()
+    # model.add(keras.layers.InputLayer(shape=(12,)))
+    # model.add(keras.layers.Dense(128, activation='relu'))
+    # model.add(keras.layers.Dense(192, activation='relu'))
+    # model.add(keras.layers.Dense(192, activation='relu'))
+    # model.add(keras.layers.Dense(128, activation='relu'))
+    # model.add(keras.layers.Dense(96, activation='relu'))
+    # model.add(keras.layers.Dense(4))
+
     model = keras.Sequential()
-    model.add(keras.layers.InputLayer(shape=(2, 6, 1,)))
-    model.add(keras.layers.ConvLSTM1D(96, 2, activation='relu', return_sequences=True))
-    model.add(keras.layers.ConvLSTM1D(64, 2, activation="relu"))
-    model.add(keras.layers.Flatten())
+    model.add(keras.layers.InputLayer(shape=(5, 6,)))
+    model.add(keras.layers.LSTM(96, activation='relu', return_sequences=True))
+    model.add(keras.layers.LSTM(64, activation='relu'))
     model.add(keras.layers.Dense(4))
 
     # mv2:
@@ -112,7 +142,13 @@ else:
     # model.add(keras.layers.Dense(64, activation='relu'))
 
     # Compile the model.
-    optimizer = keras.optimizers.Adam(0.0001)
+    learning_rate_schedule = keras.optimizers.schedules.ExponentialDecay(
+        initial_learning_rate=0.001,
+        decay_steps=10000,
+        decay_rate=0.96
+    )
+    optimizer = keras.optimizers.Adam(learning_rate=learning_rate_schedule)
+    
     model.compile(optimizer=optimizer,
                 loss='mse',
                 metrics=['mse', 'mae'])
@@ -142,6 +178,6 @@ print("Training labels shape: {0}".format(train_y.shape))
 
 # Train the model.
 callbacks = stopCallback()
-model.fit(train_x, train_y, batch_size=8, epochs=5000, verbose=2, validation_split=0.2, callbacks=[callbacks])
+model.fit(train_x, train_y, batch_size=64, epochs=5000, verbose=2, validation_split=0.2, callbacks=[callbacks])
 model.save("pong.keras")
 print("Model training complete!")
