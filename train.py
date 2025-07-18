@@ -24,7 +24,7 @@ data = []
 
 print ("Reading in game data ({0})...".format(datetime.datetime.now()))
 
-for filename in glob.glob("game_data_*.txt"):
+for filename in glob.glob("data/game_data_*.txt"):
     # Read the game data into memory.
     data = []
     with open(filename, "r") as f:
@@ -44,7 +44,7 @@ for filename in glob.glob("game_data_*.txt"):
     step = 1
     if filename.endswith("game_data_10.txt"):
         step = 6
-
+    
     for pos in range(0, len(data)-5, step):
         paddle1_pos_1 = data[pos][0] 
         paddle2_pos_1 = data[pos][1]
@@ -88,13 +88,9 @@ for filename in glob.glob("game_data_*.txt"):
         paddle1_vel_6 = data[pos+5][4]
         paddle2_vel_6 = data[pos+5][5]
 
-        # LSTM:
-        # train_x.append([[paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1], [paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2]])
         train_x.append([ [paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1], [paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2], 
             [paddle1_pos_3, paddle2_pos_3, ball_x_3, ball_y_3, paddle1_vel_3, paddle2_vel_3], [paddle1_pos_4, paddle2_pos_4, ball_x_4, ball_y_4, paddle1_vel_4, paddle2_vel_4],
             [paddle1_pos_5, paddle2_pos_5, ball_x_5, ball_y_5, paddle1_vel_5, paddle2_vel_5] ])
-        # Dense:
-        # train_x.append([paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1, paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2])
         train_y.append([paddle1_pos_6, paddle2_pos_6, ball_x_6, ball_y_6])
 
 print("Done reading in game data ({0}).".format(datetime.datetime.now()))
@@ -114,10 +110,17 @@ else:
     # model.add(keras.layers.Dense(96, activation='relu'))
     # model.add(keras.layers.Dense(4))
 
+    # model = keras.Sequential()
+    # model.add(keras.layers.InputLayer(shape=(5, 6,)))
+    # model.add(keras.layers.LSTM(32, return_sequences=True))
+    # model.add(keras.layers.LSTM(32, return_sequences=True))
+    # model.add(keras.layers.LSTM(32, return_sequences=True))
+    # model.add(keras.layers.LSTM(32))
+    # model.add(keras.layers.Dense(4))
+
     model = keras.Sequential()
     model.add(keras.layers.InputLayer(shape=(5, 6,)))
-    model.add(keras.layers.LSTM(96, activation='relu', return_sequences=True))
-    model.add(keras.layers.LSTM(64, activation='relu'))
+    model.add(keras.layers.LSTM(256))
     model.add(keras.layers.Dense(4))
 
     # mv2:
@@ -149,9 +152,7 @@ else:
     )
     optimizer = keras.optimizers.Adam(learning_rate=learning_rate_schedule)
     
-    model.compile(optimizer=optimizer,
-                loss='mse',
-                metrics=['mse', 'mae'])
+    model.compile(optimizer=optimizer, loss='mse')
 
 # Print the model summary.
 model.summary()
