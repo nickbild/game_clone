@@ -42,6 +42,14 @@ def init():
     ball_init()
 
 
+def point_scored():
+    while True:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+
+
 def draw(canvas):
     global paddle1_pos, paddle2_pos, ball_pos, ball_vel
            
@@ -75,15 +83,15 @@ def draw(canvas):
         ball_vel[1] = -ball_vel[1]
     
     # Gutter/paddle collision check.
-    if int(ball_pos[0]) <= BALL_RADIUS + PAD_WIDTH and int(ball_pos[1]) in range(int(paddle1_pos[1] - HALF_PAD_HEIGHT), int(paddle1_pos[1] + HALF_PAD_HEIGHT + 5), 1):
+    if int(ball_pos[0]) <= BALL_RADIUS + PAD_WIDTH and int(ball_pos[1]) in range(int(paddle1_pos[1] - HALF_PAD_HEIGHT - 1), int(paddle1_pos[1] + HALF_PAD_HEIGHT + 5), 1):
         ball_vel[0] = -ball_vel[0]
     elif int(ball_pos[0]) <= BALL_RADIUS + PAD_WIDTH:
-        ball_init()
+        point_scored()
         
-    if int(ball_pos[0]) >= WIDTH + 1 - BALL_RADIUS - PAD_WIDTH and int(ball_pos[1]) in range(int(paddle2_pos[1] - HALF_PAD_HEIGHT), int(paddle2_pos[1] + HALF_PAD_HEIGHT + 5), 1):
+    if int(ball_pos[0]) >= WIDTH + 1 - BALL_RADIUS - PAD_WIDTH and int(ball_pos[1]) in range(int(paddle2_pos[1] - HALF_PAD_HEIGHT - 1), int(paddle2_pos[1] + HALF_PAD_HEIGHT + 5), 1):
         ball_vel[0] = -ball_vel[0]
     elif int(ball_pos[0]) >= WIDTH + 1 - BALL_RADIUS - PAD_WIDTH:
-        ball_init()
+        point_scored()
 
 
 def keydown(event):
@@ -128,6 +136,9 @@ while True:
     pygame.display.update()
 
     f.write("{0} {1} {2} {3} {4} {5}\n".format(int(paddle1_pos[1]), int(paddle2_pos[1]), int(ball_pos[0]), int(ball_pos[1]), int(paddle1_vel), int(paddle2_vel)))
+
+    if ball_pos[0] == 403 and ball_pos[1] == 297 and ball_vel[0] == 3 and ball_vel[1] == -3:
+        print("STARTING POINT REACHED")
 
     fps.tick(60)
 
