@@ -47,7 +47,11 @@ window = pygame.display.set_mode((WIDTH, HEIGHT), 0, 32)
 pygame.display.set_caption('NeuralPong')
 
 # Set the initial game state.
-past_positions = [[300, 300, 403, 297, 0, 0], [300, 300, 406, 294, 0, 0], [300, 300, 409, 291, 0, 0], [300, 300, 412, 288, 0, 0], [300, 300, 415, 285, 0, 0]]
+past_positions = [[300, 300, 403, 297, 0, 0], 
+                  [300, 300, 406, 294, 0, 0], 
+                  [300, 300, 409, 291, 0, 0], 
+                  [300, 300, 412, 288, 0, 0], 
+                  [300, 300, 415, 285, 0, 0]]
 past_positions = np.asarray(past_positions).astype('float32').reshape(1, 5, 6)
 
 # Load the saved model.
@@ -80,4 +84,7 @@ while True:
     pygame.draw.polygon(window, RED, [[0, int(past_positions[0][4][0]) - HALF_PAD_HEIGHT], [0, int(past_positions[0][4][0]) + HALF_PAD_HEIGHT], [9, int(past_positions[0][4][0]) + HALF_PAD_HEIGHT], [9, int(past_positions[0][4][0]) - HALF_PAD_HEIGHT]], 0)
     pygame.draw.polygon(window, RED, [[790, int(past_positions[0][4][1]) - HALF_PAD_HEIGHT], [790, int(past_positions[0][4][1]) + HALF_PAD_HEIGHT], [799, int(past_positions[0][4][1]) + HALF_PAD_HEIGHT], [799, int(past_positions[0][4][1]) - HALF_PAD_HEIGHT]], 0)
     pygame.display.update()
+
+    print(past_positions)
+
     # fps.tick(60)
