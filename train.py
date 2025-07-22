@@ -6,7 +6,7 @@ import datetime
 import glob
 
 
-MSE_THRESHOLD = 0.5
+MSE_THRESHOLD = 0.001
 CONTINUE_TRAINING_MODEL = ""
 
 
@@ -52,7 +52,7 @@ for filename in glob.glob("data/game_data_*.txt"):
         ball_y_1 = data[pos][3]
         paddle1_vel_1 = data[pos][4]
         paddle2_vel_1 = data[pos][5]
-
+        
         paddle1_pos_2 = data[pos+1][0] 
         paddle2_pos_2 = data[pos+1][1]
         ball_x_2 = data[pos+1][2]
@@ -66,30 +66,30 @@ for filename in glob.glob("data/game_data_*.txt"):
         ball_y_3 = data[pos+2][3]
         paddle1_vel_3 = data[pos+2][4]
         paddle2_vel_3 = data[pos+2][5]
-
+        
         paddle1_pos_4 = data[pos+3][0] 
         paddle2_pos_4 = data[pos+3][1]
         ball_x_4 = data[pos+3][2]
         ball_y_4 = data[pos+3][3]
         paddle1_vel_4 = data[pos+3][4]
         paddle2_vel_4 = data[pos+3][5]
-
+        
         paddle1_pos_5 = data[pos+4][0] 
         paddle2_pos_5 = data[pos+4][1]
         ball_x_5 = data[pos+4][2]
         ball_y_5 = data[pos+4][3]
         paddle1_vel_5 = data[pos+4][4]
         paddle2_vel_5 = data[pos+4][5]
-
+        
         paddle1_pos_6 = data[pos+5][0] 
         paddle2_pos_6 = data[pos+5][1]
         ball_x_6 = data[pos+5][2]
         ball_y_6 = data[pos+5][3]
-        paddle1_vel_6 = data[pos+5][4]
-        paddle2_vel_6 = data[pos+5][5]
-
-        train_x.append([ [paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1], [paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2], 
-            [paddle1_pos_3, paddle2_pos_3, ball_x_3, ball_y_3, paddle1_vel_3, paddle2_vel_3], [paddle1_pos_4, paddle2_pos_4, ball_x_4, ball_y_4, paddle1_vel_4, paddle2_vel_4],
+                
+        train_x.append([ [paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1], 
+            [paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2], 
+            [paddle1_pos_3, paddle2_pos_3, ball_x_3, ball_y_3, paddle1_vel_3, paddle2_vel_3], 
+            [paddle1_pos_4, paddle2_pos_4, ball_x_4, ball_y_4, paddle1_vel_4, paddle2_vel_4],
             [paddle1_pos_5, paddle2_pos_5, ball_x_5, ball_y_5, paddle1_vel_5, paddle2_vel_5] ])
         train_y.append([paddle1_pos_6, paddle2_pos_6, ball_x_6, ball_y_6])
 
@@ -120,8 +120,54 @@ else:
 
     model = keras.Sequential()
     model.add(keras.layers.InputLayer(shape=(5, 6,)))
-    model.add(keras.layers.LSTM(256))
+    model.add(keras.layers.LSTM(192))
     model.add(keras.layers.Dense(4))
+
+    # # 1) Create a Sequential model
+    # model = keras.Sequential()
+    # model.add(keras.layers.InputLayer(shape=(5, 6,))) # (timesteps, features)
+
+    # # 2) First TCN block: causal Conv1D with dilation=1
+    # model.add(keras.layers.Conv1D(
+    #     filters=32,
+    #     kernel_size=2,
+    #     dilation_rate=1,
+    #     padding="causal",
+    #     activation="relu",
+    #     name="tcn_conv_d1"
+    # ))
+    # model.add(keras.layers.Dropout(0.1, name="tcn_do_d1"))
+
+    # # 3) Second TCN block: dilation=2
+    # model.add(keras.layers.Conv1D(
+    #     filters=32,
+    #     kernel_size=2,
+    #     dilation_rate=2,
+    #     padding="causal",
+    #     activation="relu",
+    #     name="tcn_conv_d2"
+    # ))
+    # model.add(keras.layers.Dropout(0.1, name="tcn_do_d2"))
+
+    # # 4) Third TCN block: dilation=4
+    # model.add(keras.layers.Conv1D(
+    #     filters=32,
+    #     kernel_size=2,
+    #     dilation_rate=4,
+    #     padding="causal",
+    #     activation="relu",
+    #     name="tcn_conv_d4"
+    # ))
+    # model.add(keras.layers.Dropout(0.1, name="tcn_do_d4"))
+
+    # # 5) Collapse the time dimension so we can do a final regression
+    # model.add(keras.layers.Flatten(name="flatten_time"))
+
+    # # 6) Output layer: predict next [p1_x, p2_x, ball_x, ball_y]
+    # model.add(keras.layers.Dense(
+    #     units=4,
+    #     activation="linear"
+    # ))
 
     # mv2:
     # model = keras.Sequential()
@@ -147,7 +193,7 @@ else:
     # Compile the model.
     learning_rate_schedule = keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=0.001,
-        decay_steps=10000,
+        decay_steps=3000,
         decay_rate=0.96
     )
     optimizer = keras.optimizers.Adam(learning_rate=learning_rate_schedule)
@@ -179,6 +225,6 @@ print("Training labels shape: {0}".format(train_y.shape))
 
 # Train the model.
 callbacks = stopCallback()
-model.fit(train_x, train_y, batch_size=64, epochs=5000, verbose=2, validation_split=0.2, callbacks=[callbacks])
+model.fit(train_x, train_y, batch_size=32, epochs=5000, verbose=2, validation_split=0.2, callbacks=[callbacks])
 model.save("pong.keras")
 print("Model training complete!")
