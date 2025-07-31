@@ -1,4 +1,4 @@
-import tensorflow
+import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 import os
@@ -42,8 +42,8 @@ for filename in glob.glob("data/game_data_*.txt"):
 
     # Create the training data structure.
     step = 1
-    if filename.endswith("game_data_10.txt"):
-        step = 6
+    if filename.endswith("game_data_100.txt"):
+        step = 3
     
     for pos in range(0, len(data)-5, step):
         paddle1_pos_1 = data[pos][0] 
@@ -64,34 +64,10 @@ for filename in glob.glob("data/game_data_*.txt"):
         paddle2_pos_3 = data[pos+2][1]
         ball_x_3 = data[pos+2][2]
         ball_y_3 = data[pos+2][3]
-        paddle1_vel_3 = data[pos+2][4]
-        paddle2_vel_3 = data[pos+2][5]
-        
-        paddle1_pos_4 = data[pos+3][0] 
-        paddle2_pos_4 = data[pos+3][1]
-        ball_x_4 = data[pos+3][2]
-        ball_y_4 = data[pos+3][3]
-        paddle1_vel_4 = data[pos+3][4]
-        paddle2_vel_4 = data[pos+3][5]
-        
-        paddle1_pos_5 = data[pos+4][0] 
-        paddle2_pos_5 = data[pos+4][1]
-        ball_x_5 = data[pos+4][2]
-        ball_y_5 = data[pos+4][3]
-        paddle1_vel_5 = data[pos+4][4]
-        paddle2_vel_5 = data[pos+4][5]
-        
-        paddle1_pos_6 = data[pos+5][0] 
-        paddle2_pos_6 = data[pos+5][1]
-        ball_x_6 = data[pos+5][2]
-        ball_y_6 = data[pos+5][3]
                 
-        train_x.append([ [paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1], 
-            [paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2], 
-            [paddle1_pos_3, paddle2_pos_3, ball_x_3, ball_y_3, paddle1_vel_3, paddle2_vel_3], 
-            [paddle1_pos_4, paddle2_pos_4, ball_x_4, ball_y_4, paddle1_vel_4, paddle2_vel_4],
-            [paddle1_pos_5, paddle2_pos_5, ball_x_5, ball_y_5, paddle1_vel_5, paddle2_vel_5] ])
-        train_y.append([paddle1_pos_6, paddle2_pos_6, ball_x_6, ball_y_6])
+        train_x.append([paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1, 
+            paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2])
+        train_y.append([paddle1_pos_3, paddle2_pos_3, ball_x_3, ball_y_3])
 
 print("Done reading in game data ({0}).".format(datetime.datetime.now()))
 
@@ -103,97 +79,46 @@ else:
     # Build the model.
     # model = keras.Sequential()
     # model.add(keras.layers.InputLayer(shape=(12,)))
-    # model.add(keras.layers.Dense(128, activation='relu'))
     # model.add(keras.layers.Dense(192, activation='relu'))
     # model.add(keras.layers.Dense(192, activation='relu'))
-    # model.add(keras.layers.Dense(128, activation='relu'))
-    # model.add(keras.layers.Dense(96, activation='relu'))
+    # model.add(keras.layers.Dense(192, activation='relu'))
+    # model.add(keras.layers.Dense(192, activation='relu'))
+    # model.add(keras.layers.Dense(192, activation='relu'))
+    # model.add(keras.layers.Dense(192, activation='relu'))
     # model.add(keras.layers.Dense(4))
 
-    # model = keras.Sequential()
-    # model.add(keras.layers.InputLayer(shape=(5, 6,)))
-    # model.add(keras.layers.LSTM(32, return_sequences=True))
-    # model.add(keras.layers.LSTM(32, return_sequences=True))
-    # model.add(keras.layers.LSTM(32, return_sequences=True))
-    # model.add(keras.layers.LSTM(32))
-    # model.add(keras.layers.Dense(4))
+    main_input = keras.Input(shape=(12,), name='main_input')
 
-    model = keras.Sequential()
-    model.add(keras.layers.InputLayer(shape=(5, 6,)))
-    model.add(keras.layers.LSTM(192))
-    model.add(keras.layers.Dense(4))
+    # Branch for ball features (elements 3, 4, 9, 10).
+    independent_features = keras.ops.take(main_input, indices=[2, 3, 8, 9], axis=1)
+    independent_branch = keras.layers.Dense(256, activation='relu', name='independent_ball_1')(independent_features)
+    independent_branch = keras.layers.Dense(256, activation='relu', name='independent_ball_2')(independent_branch)
+    independent_branch = keras.layers.Dense(256, activation='relu', name='independent_ball_3')(independent_branch)
 
-    # # 1) Create a Sequential model
-    # model = keras.Sequential()
-    # model.add(keras.layers.InputLayer(shape=(5, 6,))) # (timesteps, features)
+    # Branch for the paddle features.
+    all_indices = set(range(12))
+    independent_indices = {2, 3, 8, 9}
+    remaining_indices = sorted(list(all_indices - independent_indices))
+    remaining_features = keras.ops.take(main_input, indices=remaining_indices, axis=1)
+    remaining_branch = keras.layers.Dense(128, activation='relu', name='independent_paddle_1')(remaining_features)
+    remaining_branch = keras.layers.Dense(128, activation='relu', name='independent_paddle_2')(remaining_branch)
+    remaining_branch = keras.layers.Dense(128, activation='relu', name='independent_paddle_3')(remaining_branch)
 
-    # # 2) First TCN block: causal Conv1D with dilation=1
-    # model.add(keras.layers.Conv1D(
-    #     filters=32,
-    #     kernel_size=2,
-    #     dilation_rate=1,
-    #     padding="causal",
-    #     activation="relu",
-    #     name="tcn_conv_d1"
-    # ))
-    # model.add(keras.layers.Dropout(0.1, name="tcn_do_d1"))
+    # Combine the branches.
+    combined_features = keras.layers.Concatenate(name='concatenate_branches')([independent_branch, remaining_branch])
 
-    # # 3) Second TCN block: dilation=2
-    # model.add(keras.layers.Conv1D(
-    #     filters=32,
-    #     kernel_size=2,
-    #     dilation_rate=2,
-    #     padding="causal",
-    #     activation="relu",
-    #     name="tcn_conv_d2"
-    # ))
-    # model.add(keras.layers.Dropout(0.1, name="tcn_do_d2"))
-
-    # # 4) Third TCN block: dilation=4
-    # model.add(keras.layers.Conv1D(
-    #     filters=32,
-    #     kernel_size=2,
-    #     dilation_rate=4,
-    #     padding="causal",
-    #     activation="relu",
-    #     name="tcn_conv_d4"
-    # ))
-    # model.add(keras.layers.Dropout(0.1, name="tcn_do_d4"))
-
-    # # 5) Collapse the time dimension so we can do a final regression
-    # model.add(keras.layers.Flatten(name="flatten_time"))
-
-    # # 6) Output layer: predict next [p1_x, p2_x, ball_x, ball_y]
-    # model.add(keras.layers.Dense(
-    #     units=4,
-    #     activation="linear"
-    # ))
-
-    # mv2:
-    # model = keras.Sequential()
-    # model.add(keras.layers.InputLayer(shape=(2, 6,)))
-    # model.add(keras.layers.LSTM(128, activation='relu', return_sequences=True))
-    # model.add(keras.layers.LSTM(96, activation="relu"))
-    # model.add(keras.layers.Dense(4))
-
-    # tests:
-    # model.add(keras.layers.LSTM(32, return_sequences=True, activation="relu"))
-    # model.add(keras.layers.LSTM(32, activation="relu"))
-    # model.add(keras.layers.Dense(64, activation="relu"))
-    # model.add(keras.layers.Conv1D(128, 2, activation='relu', padding='same'))
-    # model.add(keras.layers.MaxPooling1D(2))
-    # model.add(keras.layers.Conv1D(128, 2, activation='relu', padding='same'))
-    # model.add(keras.layers.Flatten())
-    # model.add(keras.layers.Dense(64, activation='relu'))
-    # model.add(keras.layers.MaxPooling1D(2, padding="same"))
-    # model.add(keras.layers.LSTM(96, return_sequences=True, activation="relu"))
-    # model.add(keras.layers.LSTM(64, activation="relu"))
-    # model.add(keras.layers.Dense(64, activation='relu'))
+    x = keras.layers.Dense(192, activation='relu')(combined_features)
+    x = keras.layers.Dense(192, activation='relu')(x)
+    x = keras.layers.Dense(192, activation='relu')(x)
+    x = keras.layers.Dense(192, activation='relu')(x)
+    x = keras.layers.Dense(192, activation='relu')(x)
+    output = keras.layers.Dense(4, name='output')(x)
+    model = keras.Model(inputs=main_input, outputs=output)
 
     # Compile the model.
     learning_rate_schedule = keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=0.001,
-        decay_steps=3000,
+        decay_steps=12000,
         decay_rate=0.96
     )
     optimizer = keras.optimizers.Adam(learning_rate=learning_rate_schedule)
