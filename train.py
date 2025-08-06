@@ -23,22 +23,13 @@ class CustomLossLogger(keras.callbacks.Callback):
         print(f"\n--- Epoch {epoch+1} ---")
         print(f"Total Loss: {logs.get('loss'):.8f} - Val Total Loss: {logs.get('val_loss'):.8f}")
 
-        # Iterate through the logs to find individual loss and metric values
-        # Keras names these automatically: 'output_name_loss', 'val_output_name_loss', 'output_name_metric', etc.
+        # Iterate through the logs to find individual loss and metric values.
         for key, value in logs.items():
             if '_loss' in key and not key.startswith('val_'): # Training loss for individual heads
                 print(f"  Train {key.replace('_loss', ' Loss')}: {value:.8f}")
             elif key.startswith('val_') and '_loss' in key: # Validation loss for individual heads
                 print(f"  Validation {key.replace('val_', '').replace('_loss', ' Loss')}: {value:.8f}")
-            elif '_accuracy' in key and not key.startswith('val_'): # Training accuracy for individual heads
-                print(f"  Train {key.replace('_accuracy', ' Accuracy')}: {value:.8f}")
-            elif key.startswith('val_') and '_accuracy' in key: # Validation accuracy for individual heads
-                print(f"  Validation {key.replace('val_', '').replace('_accuracy', ' Accuracy')}: {value:.8f}")
-            elif '_mae' in key and not key.startswith('val_'): # Training MAE for individual heads
-                print(f"  Train {key.replace('_mae', ' MAE')}: {value:.8f}")
-            elif key.startswith('val_') and '_mae' in key: # Validation MAE for individual heads
-                print(f"  Validation {key.replace('val_', '').replace('_mae', ' MAE')}: {value:.8f}")
-
+            
         print("--------------------")
 
 
@@ -72,9 +63,9 @@ for filename in glob.glob("data/game_data_*.txt"):
     # Create the training data structure.
     step = 1
     if filename.endswith("game_data_100.txt"):
-        step = 3
+        step = 5
     
-    for pos in range(0, len(data)-2, step):
+    for pos in range(0, len(data)-4, step):
         paddle1_pos_1 = data[pos][0] 
         paddle2_pos_1 = data[pos][1]
         ball_x_1 = data[pos][2]
@@ -88,20 +79,36 @@ for filename in glob.glob("data/game_data_*.txt"):
         ball_y_2 = data[pos+1][3]
         paddle1_vel_2 = data[pos+1][4]
         paddle2_vel_2 = data[pos+1][5]
-        
+
         paddle1_pos_3 = data[pos+2][0] 
         paddle2_pos_3 = data[pos+2][1]
         ball_x_3 = data[pos+2][2]
         ball_y_3 = data[pos+2][3]
-        game_state_3 = data[pos+2][6]
-                
-        train_x.append([paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1, 
-            paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2])
+        paddle1_vel_3 = data[pos+2][4]
+        paddle2_vel_3 = data[pos+2][5]
 
-        train_y_paddle1_pos.append([paddle1_pos_3])
-        train_y_paddle2_pos.append([paddle2_pos_3])
-        train_y_ball_state.append([ball_x_3, ball_y_3])
-        train_y_game_state.append([game_state_3])
+        paddle1_pos_4 = data[pos+3][0] 
+        paddle2_pos_4 = data[pos+3][1]
+        ball_x_4 = data[pos+3][2]
+        ball_y_4 = data[pos+3][3]
+        paddle1_vel_4 = data[pos+3][4]
+        paddle2_vel_4 = data[pos+3][5]
+        
+        paddle1_pos_5 = data[pos+4][0] 
+        paddle2_pos_5 = data[pos+4][1]
+        ball_x_5 = data[pos+4][2]
+        ball_y_5 = data[pos+4][3]
+        game_state_5 = data[pos+4][6]
+                        
+        train_x.append([paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1, 
+            paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2,
+            paddle1_pos_3, paddle2_pos_3, ball_x_3, ball_y_3, paddle1_vel_3, paddle2_vel_3,
+            paddle1_pos_4, paddle2_pos_4, ball_x_4, ball_y_4, paddle1_vel_4, paddle2_vel_4])
+
+        train_y_paddle1_pos.append([paddle1_pos_5])
+        train_y_paddle2_pos.append([paddle2_pos_5])
+        train_y_ball_state.append([ball_x_5, ball_y_5])
+        train_y_game_state.append([game_state_5])
 
 print("Done reading in game data ({0}).".format(datetime.datetime.now()))
 
@@ -111,47 +118,42 @@ if CONTINUE_TRAINING_MODEL != "":
 
 else:
     # Build the model.
-    main_input = keras.Input(shape=(12,), name='main_input')
+    main_input = keras.Input(shape=(24,), name='main_input')
     
     # Branch for the paddle1 features.
-    paddle1_features = keras.ops.take(main_input, indices=[0, 4, 6, 10], axis=1)
-    paddle1_branch = keras.layers.Dense(192, activation='relu', name='paddle1_1')(paddle1_features)
-    paddle1_branch = keras.layers.Dense(192, activation='relu', name='paddle1_2')(paddle1_branch)
-    paddle1_branch = keras.layers.Dense(192, activation='relu', name='paddle1_3')(paddle1_branch)
-    paddle1_branch = keras.layers.Dense(192, activation='relu', name='paddle1_4')(paddle1_branch)
-    paddle1_branch = keras.layers.Dense(192, activation='relu', name='paddle1_5')(paddle1_branch)
+    paddle1_features = keras.ops.take(main_input, indices=[0, 4, 6, 10, 12, 16, 18, 22], axis=1)
+    paddle1_branch = keras.layers.Dense(32, activation='relu', name='paddle1_1')(paddle1_features)
+    paddle1_branch = keras.layers.Dense(32, activation='relu', name='paddle1_2')(paddle1_branch)
+    paddle1_branch = keras.layers.Dense(32, activation='relu', name='paddle1_3')(paddle1_branch)
     
     # Branch for the paddle2 features.
-    paddle2_features = keras.ops.take(main_input, indices=[1, 5, 7, 11], axis=1)
-    paddle2_branch = keras.layers.Dense(192, activation='relu', name='paddle2_1')(paddle2_features)
-    paddle2_branch = keras.layers.Dense(192, activation='relu', name='paddle2_2')(paddle2_branch)
-    paddle2_branch = keras.layers.Dense(192, activation='relu', name='paddle2_3')(paddle2_branch)
-    paddle2_branch = keras.layers.Dense(192, activation='relu', name='paddle2_4')(paddle2_branch)
-    paddle2_branch = keras.layers.Dense(192, activation='relu', name='paddle2_5')(paddle2_branch)
-
+    paddle2_features = keras.ops.take(main_input, indices=[1, 5, 7, 11, 13, 17, 19, 23], axis=1)
+    paddle2_branch = keras.layers.Dense(32, activation='relu', name='paddle2_1')(paddle2_features)
+    paddle2_branch = keras.layers.Dense(32, activation='relu', name='paddle2_2')(paddle2_branch)
+    paddle2_branch = keras.layers.Dense(32, activation='relu', name='paddle2_3')(paddle2_branch)
+    
     # Branch for ball features.
-    ball_features = keras.ops.take(main_input, indices=[2, 3, 8, 9], axis=1)
-    ball_branch = keras.layers.Dense(192, activation='relu', name='ball_1')(ball_features)
-    ball_branch = keras.layers.Dense(192, activation='relu', name='ball_2')(ball_branch)
-    ball_branch = keras.layers.Dense(192, activation='relu', name='ball_3')(ball_branch)
-    ball_branch = keras.layers.Dense(192, activation='relu', name='ball_4')(ball_branch)
-    ball_branch = keras.layers.Dense(192, activation='relu', name='ball_5')(ball_branch)
+    ball_features = keras.ops.take(main_input, indices=[2, 3, 8, 9, 14, 15, 20, 21], axis=1)
+    reshaped_ball_features = keras.layers.Reshape((4, 2))(ball_features)
+    ball_branch = keras.layers.LSTM(64)(reshaped_ball_features)
+    # ball_branch = keras.layers.Dense(32, activation='relu', name='ball_1')(ball_features)
+    # ball_branch = keras.layers.Dense(32, activation='relu', name='ball_2')(ball_branch)
+    # ball_branch = keras.layers.Dense(32, activation='relu', name='ball_3')(ball_branch)
 
-    # Combine ball with paddle positions.
+    # Combine ball with paddle features.
     combined_features = keras.layers.Concatenate(name='concatenate_branches')([ball_branch, paddle1_branch, paddle2_branch])
-    shared_branch = keras.layers.Dense(192, activation='relu', name='ball_paddle_1')(combined_features)
-    shared_branch = keras.layers.Dense(192, activation='relu', name='ball_paddle_2')(shared_branch)
-    shared_branch = keras.layers.Dense(192, activation='relu', name='ball_paddle_3')(shared_branch)
-    shared_branch = keras.layers.Dense(192, activation='relu', name='ball_paddle_4')(shared_branch)
-
+    shared_branch = keras.layers.Dense(32, activation='relu', name='ball_paddle_1')(combined_features)
+    shared_branch = keras.layers.Dense(32, activation='relu', name='ball_paddle_2')(shared_branch)
+    shared_branch = keras.layers.Dense(32, activation='relu', name='ball_paddle_3')(shared_branch)
+    
     # Output heads.
-    paddle1_output_head = keras.layers.Dense(1, activation='linear', name='paddle1_6')(paddle1_branch)
-    paddle2_output_head = keras.layers.Dense(1, activation='linear', name='paddle2_6')(paddle2_branch)
+    paddle1_output_head = keras.layers.Dense(1, activation='linear', name='paddle1_output_1')(paddle1_branch)
+    paddle2_output_head = keras.layers.Dense(1, activation='linear', name='paddle2_output_1')(paddle2_branch)
 
-    ball_output_head = keras.layers.Dense(192, activation='relu', name='ball_output_1')(shared_branch)
+    ball_output_head = keras.layers.Dense(32, activation='relu', name='ball_output_1')(shared_branch)
     ball_output_head = keras.layers.Dense(2, activation='linear', name='ball_output_2')(ball_output_head)
 
-    game_state_output_head = keras.layers.Dense(192, activation='relu', name='game_state_output_1')(shared_branch)
+    game_state_output_head = keras.layers.Dense(32, activation='relu', name='game_state_output_1')(shared_branch)
     game_state_output_head = keras.layers.Dense(1, activation='sigmoid', name='game_state_output_2')(game_state_output_head)
 
     model = keras.Model(inputs=main_input, outputs=[paddle1_output_head, paddle2_output_head, ball_output_head, game_state_output_head])
@@ -159,15 +161,15 @@ else:
     # Compile the model.
     learning_rate_schedule = keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=0.001,
-        decay_steps=12000,
+        decay_steps=24000,
         decay_rate=0.96
     )
     optimizer = keras.optimizers.Adam(learning_rate=learning_rate_schedule)
     
     model.compile(optimizer=optimizer, 
         loss={
-            'paddle1_6': 'mse',
-            'paddle2_6': 'mse',
+            'paddle1_output_1': 'mse',
+            'paddle2_output_1': 'mse',
             'ball_output_2': 'mse',
             'game_state_output_2': 'binary_crossentropy'
         }
@@ -213,8 +215,8 @@ train_y_ball_state = (train_y_ball_state - y_ball_min) / y_ball_range
 
 # Group together the training labels.
 train_y_dict = {
-    'paddle1_6': train_y_paddle1_pos,
-    'paddle2_6': train_y_paddle2_pos,
+    'paddle1_output_1': train_y_paddle1_pos,
+    'paddle2_output_1': train_y_paddle2_pos,
     'ball_output_2': train_y_ball_state,
     'game_state_output_2': train_y_game_state
 }
