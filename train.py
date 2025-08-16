@@ -7,7 +7,7 @@ import glob
 
 
 MSE_THRESHOLD = 0.00000001
-CONTINUE_TRAINING_MODEL = ""
+CONTINUE_TRAINING_MODEL = "pong.keras"
 
 
 class stopCallback(keras.callbacks.Callback): 
@@ -45,7 +45,8 @@ print ("Reading in game data ({0})...".format(datetime.datetime.now()))
 
 files1 = glob.glob("data/game_data_*.txt")
 files2 = glob.glob("data_sim/pong_training_data_*.txt")
-all_files = files1 + files2
+# all_files = files1 + files2
+all_files = files1
 
 for filename in all_files:
     # Read the game data into memory.
@@ -212,14 +213,22 @@ else:
     
     # Branch for ball features.
     ball_features = keras.ops.take(normalized_input, indices=[2, 3, 8, 9, 14, 15, 20, 21], axis=1)
-    ball_branch = keras.layers.Dense(64, activation='relu', name='ball_1')(ball_features)
+    ball_branch = keras.layers.Reshape((4, 2))(ball_features)
+    ball_branch = keras.layers.Conv1D(filters=32, kernel_size=2, activation='relu', name='ball_conv1d_1')(ball_branch)
+    ball_branch = keras.layers.MaxPooling1D(pool_size=2)(ball_branch)
+    ball_branch = keras.layers.Flatten()(ball_branch)
+    ball_branch = keras.layers.Dense(64, activation='relu', name='ball_1')(ball_branch)
     ball_branch = keras.layers.Dense(64, activation='relu', name='ball_2')(ball_branch)
-    ball_branch = keras.layers.Dense(64, activation='relu', name='ball_3')(ball_branch)
+    
+    # ball_branch = keras.layers.Dense(64, activation='relu', name='ball_1')(ball_features)
+    # ball_branch = keras.layers.Dense(64, activation='relu', name='ball_2')(ball_branch)
+    # ball_branch = keras.layers.Dense(64, activation='relu', name='ball_3')(ball_branch)
     
     # Combine ball with paddle features.
     combined_features = keras.layers.Concatenate(name='concatenate_branches')([ball_branch, paddle1_branch, paddle2_branch])
     shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_1')(combined_features)
     shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_2')(shared_branch)
+    shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_3')(shared_branch)
 
     paddle1_pos_output = keras.layers.Dense(1, activation='linear', name='paddle1_output_1')(paddle1_branch)
     paddle2_pos_output = keras.layers.Dense(1, activation='linear', name='paddle2_output_1')(paddle2_branch)
@@ -261,6 +270,10 @@ train_y_paddle2_pos = np.asarray(train_y_paddle2_pos).astype('float32')
 train_y_ball_state = np.asarray(train_y_ball_state).astype('float32')
 train_y_game_state = np.asarray(train_y_game_state).astype('float32')
 
+# Adapt the Normalization layer to the training data.
+if 'normalization_layer' in locals():
+    normalization_layer.adapt(train_x)
+
 # Group together the training labels.
 train_y_dict = {
     'paddle1_output_1': train_y_paddle1_pos,
@@ -275,11 +288,7 @@ train_y_dict = {
 # to teach the model some specific behaviors.
 indices = np.arange(train_x.shape[0])
 np.random.shuffle(indices)
-# Apply the shuffled indices to the data.
-tmp = train_x[indices]
-train_x = tmp
-tmp = []
-
+train_x = train_x[indices]
 for key in train_y_dict:
     train_y_dict[key] = train_y_dict[key][indices]
 
@@ -291,6 +300,6 @@ custom_logger = CustomLossLogger()
 callbacks = stopCallback()
 callbacks_list = [stopCallback(), custom_logger]
 
-model.fit(train_x, train_y_dict, batch_size=32, epochs=5000, verbose=2, validation_split=0.2, callbacks=callbacks_list)
+model.fit(train_x, train_y_dict, batch_size=64, epochs=5000, verbose=2, validation_split=0.2, callbacks=callbacks_list)
 model.save("pong.keras")
 print("Model training complete!")
