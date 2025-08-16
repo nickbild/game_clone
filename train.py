@@ -45,8 +45,7 @@ print ("Reading in game data ({0})...".format(datetime.datetime.now()))
 
 files1 = glob.glob("data/game_data_*.txt")
 files2 = glob.glob("data_sim/pong_training_data_*.txt")
-# all_files = files1 + files2
-all_files = files2 ##########################################################################################
+all_files = files1 + files2
 
 for filename in all_files:
     # Read the game data into memory.
@@ -66,7 +65,7 @@ for filename in all_files:
             data.append([paddle1_pos, paddle2_pos, ball_x, ball_y, paddle1_vel, paddle2_vel, game_state])        
 
     # Create the training data structure.
-    step = 5
+    step = 1
     # if filename.endswith("game_data_100.txt"):
     #     step = 5
     
@@ -158,9 +157,6 @@ else:
     # model = keras.Model(inputs=main_input, outputs=[paddle1_output_head, paddle2_output_head, final_ball_output, game_state_output_head])
 
 
-
-
-
     # p1_input = keras.Input(shape=(4, 2), name='paddle1_input')
     # p2_input = keras.Input(shape=(4, 2), name='paddle2_input')
     # ball_input = keras.Input(shape=(4, 2), name='ball_input')
@@ -201,29 +197,29 @@ else:
 
 
 
-
-
-
-
     main_input = keras.Input(shape=(24,), name='main_input')
 
+    normalization_layer = keras.layers.Normalization(axis=-1, name='input_normalization')
+    normalized_input = normalization_layer(main_input)
+
     # Branch for the paddle1 features.
-    paddle1_features = keras.ops.take(main_input, indices=[0, 4, 6, 10, 12, 16, 18, 22], axis=1)
+    paddle1_features = keras.ops.take(normalized_input, indices=[0, 4, 6, 10, 12, 16, 18, 22], axis=1)
     paddle1_branch = keras.layers.Dense(32, activation='relu', name='paddle1_1')(paddle1_features)
     
     # Branch for the paddle2 features.
-    paddle2_features = keras.ops.take(main_input, indices=[1, 5, 7, 11, 13, 17, 19, 23], axis=1)
+    paddle2_features = keras.ops.take(normalized_input, indices=[1, 5, 7, 11, 13, 17, 19, 23], axis=1)
     paddle2_branch = keras.layers.Dense(32, activation='relu', name='paddle2_1')(paddle2_features)
     
     # Branch for ball features.
-    ball_features = keras.ops.take(main_input, indices=[2, 3, 8, 9, 14, 15, 20, 21], axis=1)
+    ball_features = keras.ops.take(normalized_input, indices=[2, 3, 8, 9, 14, 15, 20, 21], axis=1)
     ball_branch = keras.layers.Dense(64, activation='relu', name='ball_1')(ball_features)
     ball_branch = keras.layers.Dense(64, activation='relu', name='ball_2')(ball_branch)
+    ball_branch = keras.layers.Dense(64, activation='relu', name='ball_3')(ball_branch)
     
     # Combine ball with paddle features.
     combined_features = keras.layers.Concatenate(name='concatenate_branches')([ball_branch, paddle1_branch, paddle2_branch])
-    shared_branch = keras.layers.Dense(128, activation='relu', name='ball_paddle_1')(combined_features)
-    shared_branch = keras.layers.Dense(128, activation='relu', name='ball_paddle_2')(shared_branch)
+    shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_1')(combined_features)
+    shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_2')(shared_branch)
 
     paddle1_pos_output = keras.layers.Dense(1, activation='linear', name='paddle1_output_1')(paddle1_branch)
     paddle2_pos_output = keras.layers.Dense(1, activation='linear', name='paddle2_output_1')(paddle2_branch)
@@ -237,15 +233,10 @@ else:
 
 
 
-
-
-
-
-
     # Compile the model.
     learning_rate_schedule = keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=0.001,
-        decay_steps=20000,
+        decay_steps=30000,
         decay_rate=0.96
     )
     optimizer = keras.optimizers.Adam(learning_rate=learning_rate_schedule)
@@ -270,33 +261,6 @@ train_y_paddle2_pos = np.asarray(train_y_paddle2_pos).astype('float32')
 train_y_ball_state = np.asarray(train_y_ball_state).astype('float32')
 train_y_game_state = np.asarray(train_y_game_state).astype('float32')
 
-# Scale the training data to between 0 and 1.
-x_min = np.min(train_x, axis=0)
-x_max = np.max(train_x, axis=0)
-x_range = x_max - x_min
-x_range[x_range == 0] = 1.0 # Prevent division by zero for constant features
-
-y_paddle1_min = np.min(train_y_paddle1_pos, axis=0)
-y_paddle1_max = np.max(train_y_paddle1_pos, axis=0)
-y_paddle1_range = y_paddle1_max - y_paddle1_min
-y_paddle1_range[y_paddle1_range == 0] = 1.0
-
-y_paddle2_min = np.min(train_y_paddle2_pos, axis=0)
-y_paddle2_max = np.max(train_y_paddle2_pos, axis=0)
-y_paddle2_range = y_paddle2_max - y_paddle2_min
-y_paddle2_range[y_paddle2_range == 0] = 1.0
-
-y_ball_min = np.min(train_y_ball_state, axis=0)
-y_ball_max = np.max(train_y_ball_state, axis=0)
-y_ball_range = y_ball_max - y_ball_min
-y_ball_range[y_ball_range == 0] = 1.0
-
-# Apply scaling
-train_x = (train_x - x_min) / x_range
-train_y_paddle1_pos = (train_y_paddle1_pos - y_paddle1_min) / y_paddle1_range
-train_y_paddle2_pos = (train_y_paddle2_pos - y_paddle2_min) / y_paddle2_range
-train_y_ball_state = (train_y_ball_state - y_ball_min) / y_ball_range
-
 # Group together the training labels.
 train_y_dict = {
     'paddle1_output_1': train_y_paddle1_pos,
@@ -319,16 +283,6 @@ tmp = []
 for key in train_y_dict:
     train_y_dict[key] = train_y_dict[key][indices]
 
-# Reshape and split the input data.
-num_samples = train_x.shape[0]
-num_timesteps = 4
-num_features = 6
-train_x_reshaped = train_x.reshape(num_samples, num_timesteps, num_features)
-train_x_p1 = train_x_reshaped[:, :, [0, 4]] # All samples, all timesteps, features 0 and 4.
-train_x_p2 = train_x_reshaped[:, :, [1, 5]]
-train_x_ball = train_x_reshaped[:, :, [2, 3]]
-train_x_list = [train_x_p1, train_x_p2, train_x_ball]
-
 print("Training data shape: {0}".format(train_x.shape))
 print("Training labels shape: {0} {1} {2} {3}".format(train_y_paddle1_pos.shape, train_y_paddle2_pos.shape, train_y_ball_state.shape, train_y_game_state.shape))
 
@@ -340,14 +294,3 @@ callbacks_list = [stopCallback(), custom_logger]
 model.fit(train_x, train_y_dict, batch_size=32, epochs=5000, verbose=2, validation_split=0.2, callbacks=callbacks_list)
 model.save("pong.keras")
 print("Model training complete!")
-
-# Save data scaling information.
-np.save('x_min.npy', x_min)
-np.save('x_max.npy', x_max)
-np.save('y_paddle1_min.npy', y_paddle1_min)
-np.save('y_paddle1_max.npy', y_paddle1_max)
-np.save('y_paddle2_min.npy', y_paddle2_min)
-np.save('y_paddle2_max.npy', y_paddle2_max)
-np.save('y_ball_min.npy', y_ball_min)
-np.save('y_ball_max.npy', y_ball_max)
-print("Metadata saved.")
