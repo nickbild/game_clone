@@ -212,10 +212,7 @@ else:
     shared_branch = keras.layers.LSTM(128, return_sequences=False, name='ball_paddle_lstm')(shared_branch)
     shared_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(alpha=0.1), name='ball_paddle_dense')(shared_branch)
     shared_branch = keras.layers.Dropout(0.2, name='ball_paddle_dropout')(shared_branch)
-    # shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_1')(combined_features)
-    # shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_2')(shared_branch)
-    # shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_3')(shared_branch)
-
+    
     paddle1_pos_output = keras.layers.Dense(1, activation='linear', name='paddle1_output_1')(paddle1_branch)
     paddle2_pos_output = keras.layers.Dense(1, activation='linear', name='paddle2_output_1')(paddle2_branch)
     ball_state_output = keras.layers.Dense(2, activation='linear', name='ball_output_2')(shared_branch)
