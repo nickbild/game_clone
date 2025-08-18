@@ -7,7 +7,7 @@ import glob
 
 
 MSE_THRESHOLD = 0.00000001
-CONTINUE_TRAINING_MODEL = "pong.keras"
+CONTINUE_TRAINING_MODEL = ""
 
 
 class stopCallback(keras.callbacks.Callback): 
@@ -40,13 +40,20 @@ train_y_paddle2_pos = []
 train_y_ball_state = []
 train_y_game_state = []
 
+BALL_X_MIN, BALL_X_MAX = 19, 781
+BALL_Y_MIN, BALL_Y_MAX = 9, 591
+PADDLE_Y_MIN, PADDLE_Y_MAX = 60, 540
+PADDLE_HALF_HEIGHT = 50
+
+x_range = BALL_X_MAX - BALL_X_MIN
+y_range = BALL_Y_MAX - BALL_Y_MIN
+
 
 print ("Reading in game data ({0})...".format(datetime.datetime.now()))
 
 files1 = glob.glob("data/game_data_*.txt")
 files2 = glob.glob("data_sim/pong_training_data_*.txt")
-# all_files = files1 + files2
-all_files = files1
+all_files = files1 + files2
 
 for filename in all_files:
     # Read the game data into memory.
@@ -105,10 +112,57 @@ for filename in all_files:
         ball_y_5 = data[pos+4][3]
         game_state_5 = data[pos+4][6]
 
+        # Compute ball deltas (velocities)
+        delta_x_1 = ball_x_2 - ball_x_1
+        delta_y_1 = ball_y_2 - ball_y_1
+        delta_x_2 = ball_x_3 - ball_x_2
+        delta_y_2 = ball_y_3 - ball_y_2
+        delta_x_3 = ball_x_4 - ball_x_3
+        delta_y_3 = ball_y_4 - ball_y_3
+        delta_x_4 = delta_x_3  # Repeat last known delta for frame 4
+        delta_y_4 = delta_y_3
+
+        # Compute normalized distances to boundaries and paddle coverages for each frame
+        # Frame 1
+        dist_left_1 = (ball_x_1 - BALL_X_MIN) / x_range
+        dist_right_1 = (BALL_X_MAX - ball_x_1) / x_range
+        dist_top_1 = (ball_y_1 - BALL_Y_MIN) / y_range
+        dist_bottom_1 = (BALL_Y_MAX - ball_y_1) / y_range
+        coverage_p1_1 = abs(ball_y_1 - paddle1_pos_1) / PADDLE_HALF_HEIGHT
+        coverage_p2_1 = abs(ball_y_1 - paddle2_pos_1) / PADDLE_HALF_HEIGHT
+
+        # Frame 2
+        dist_left_2 = (ball_x_2 - BALL_X_MIN) / x_range
+        dist_right_2 = (BALL_X_MAX - ball_x_2) / x_range
+        dist_top_2 = (ball_y_2 - BALL_Y_MIN) / y_range
+        dist_bottom_2 = (BALL_Y_MAX - ball_y_2) / y_range
+        coverage_p1_2 = abs(ball_y_2 - paddle1_pos_2) / PADDLE_HALF_HEIGHT
+        coverage_p2_2 = abs(ball_y_2 - paddle2_pos_2) / PADDLE_HALF_HEIGHT
+
+        # Frame 3
+        dist_left_3 = (ball_x_3 - BALL_X_MIN) / x_range
+        dist_right_3 = (BALL_X_MAX - ball_x_3) / x_range
+        dist_top_3 = (ball_y_3 - BALL_Y_MIN) / y_range
+        dist_bottom_3 = (BALL_Y_MAX - ball_y_3) / y_range
+        coverage_p1_3 = abs(ball_y_3 - paddle1_pos_3) / PADDLE_HALF_HEIGHT
+        coverage_p2_3 = abs(ball_y_3 - paddle2_pos_3) / PADDLE_HALF_HEIGHT
+
+        # Frame 4
+        dist_left_4 = (ball_x_4 - BALL_X_MIN) / x_range
+        dist_right_4 = (BALL_X_MAX - ball_x_4) / x_range
+        dist_top_4 = (ball_y_4 - BALL_Y_MIN) / y_range
+        dist_bottom_4 = (BALL_Y_MAX - ball_y_4) / y_range
+        coverage_p1_4 = abs(ball_y_4 - paddle1_pos_4) / PADDLE_HALF_HEIGHT
+        coverage_p2_4 = abs(ball_y_4 - paddle2_pos_4) / PADDLE_HALF_HEIGHT
+
         train_x.append([paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1,
             paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2,
             paddle1_pos_3, paddle2_pos_3, ball_x_3, ball_y_3, paddle1_vel_3, paddle2_vel_3,
-            paddle1_pos_4, paddle2_pos_4, ball_x_4, ball_y_4, paddle1_vel_4, paddle2_vel_4,])
+            paddle1_pos_4, paddle2_pos_4, ball_x_4, ball_y_4, paddle1_vel_4, paddle2_vel_4,
+            delta_x_1, delta_y_1, dist_left_1, dist_right_1, dist_top_1, dist_bottom_1, coverage_p1_1, coverage_p2_1,
+            delta_x_2, delta_y_2, dist_left_2, dist_right_2, dist_top_2, dist_bottom_2, coverage_p1_2, coverage_p2_2,
+            delta_x_3, delta_y_3, dist_left_3, dist_right_3, dist_top_3, dist_bottom_3, coverage_p1_3, coverage_p2_3,
+            delta_x_4, delta_y_4, dist_left_4, dist_right_4, dist_top_4, dist_bottom_4, coverage_p1_4, coverage_p2_4])
 
         train_y_paddle1_pos.append([paddle1_pos_5])
         train_y_paddle2_pos.append([paddle2_pos_5])
@@ -122,113 +176,45 @@ if CONTINUE_TRAINING_MODEL != "":
     model = keras.models.load_model(CONTINUE_TRAINING_MODEL)
 
 else:
-    # # Build the model.
-    # main_input = keras.Input(shape=(24,), name='main_input')
-    
-    # # Branch for the paddle1 features.
-    # paddle1_features = keras.ops.take(main_input, indices=[0, 4, 6, 10, 12, 16, 18, 22], axis=1)
-    # paddle1_branch = keras.layers.Dense(32, activation='relu', name='paddle1_1')(paddle1_features)
-    # # paddle1_branch = keras.layers.Dense(32, activation='relu', name='paddle1_2')(paddle1_branch)
-    
-    # # Branch for the paddle2 features.
-    # paddle2_features = keras.ops.take(main_input, indices=[1, 5, 7, 11, 13, 17, 19, 23], axis=1)
-    # paddle2_branch = keras.layers.Dense(32, activation='relu', name='paddle2_1')(paddle2_features)
-    # # paddle2_branch = keras.layers.Dense(32, activation='relu', name='paddle2_2')(paddle2_branch)
-    
-    # # Branch for ball features.
-    # ball_features = keras.ops.take(main_input, indices=[2, 3, 8, 9, 14, 15, 20, 21], axis=1)
-    # # reshaped_ball_features = keras.layers.Reshape((4, 2))(ball_features)
-    # # ball_branch = keras.layers.LSTM(64)(reshaped_ball_features)
-    # ball_branch = keras.layers.Dense(32, activation='relu', name='ball_1')(ball_features)
-    # ball_branch = keras.layers.Dense(32, activation='relu', name='ball_2')(ball_branch)
-    # # ball_branch = keras.layers.Dense(32, activation='relu', name='ball_3')(ball_branch)
-    
-    # # Combine ball with paddle features.
-    # combined_features = keras.layers.Concatenate(name='concatenate_branches')([ball_branch, paddle1_branch, paddle2_branch])
-    # shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_1')(combined_features)
-    # shared_branch = keras.layers.Dense(32, activation='relu', name='ball_paddle_2')(shared_branch)
-    # # shared_branch = keras.layers.Dense(32, activation='relu', name='ball_paddle_3')(shared_branch)
-    
-    # # Output heads.
-    # paddle1_output_head = keras.layers.Dense(1, activation='linear', name='paddle1_output_1')(paddle1_branch)
-    # paddle2_output_head = keras.layers.Dense(1, activation='linear', name='paddle2_output_1')(paddle2_branch)
-    # final_ball_output = keras.layers.Dense(2, activation='linear', name='final_ball_output')(shared_branch)
-    # game_state_output_head = keras.layers.Dense(1, activation='sigmoid', name='game_state_output_2')(shared_branch)
-
-    # model = keras.Model(inputs=main_input, outputs=[paddle1_output_head, paddle2_output_head, final_ball_output, game_state_output_head])
-
-
-    # p1_input = keras.Input(shape=(4, 2), name='paddle1_input')
-    # p2_input = keras.Input(shape=(4, 2), name='paddle2_input')
-    # ball_input = keras.Input(shape=(4, 2), name='ball_input')
-
-    # # These layers add random noise to the input data during training.
-    # # This forces the model to learn to handle slightly imperfect feature values,
-    # # making it more robust during inference.
-    # # NOISE_STDDEV = 0.01
-    # # p1_noisy = keras.layers.GaussianNoise(NOISE_STDDEV)(p1_input)
-    # # p2_noisy = keras.layers.GaussianNoise(NOISE_STDDEV)(p2_input)
-    # # ball_noisy = keras.layers.GaussianNoise(NOISE_STDDEV)(ball_input)
-
-    # # Input branches.
-    # p1_stream = keras.layers.Flatten()(p1_input)
-    # p1_stream = keras.layers.Dense(32, name='p1_dense')(p1_stream)
-
-    # p2_stream = keras.layers.Flatten()(p2_input)
-    # p2_stream = keras.layers.Dense(32, name='p2_dense')(p2_stream)
-    
-    # ball_stream = keras.layers.LSTM(32, return_sequences=False, name='ball_lstm_1')(ball_input)
-    # # ball_stream = keras.layers.LSTM(32, name='ball_lstm_2')(ball_stream)
-    
-    # # Combined interactions.
-    # combined = keras.layers.Concatenate(name='combined_features')([p1_stream, p2_stream, ball_stream])
-    # interaction_logic = keras.layers.Dense(96, activation='relu', name='interaction_layer_1')(combined)
-    # interaction_logic = keras.layers.Dense(64, activation='relu', name='interaction_layer_2')(interaction_logic)
-    
-    # # Output heads.
-    # paddle1_pos_output = keras.layers.Dense(1, activation='linear', name='paddle1_output_1')(p1_stream)
-    # paddle2_pos_output = keras.layers.Dense(1, activation='linear', name='paddle2_output_1')(p2_stream)
-    # ball_state_output = keras.layers.Dense(2, activation='linear', name='ball_output_2')(interaction_logic)
-    # game_state_output = keras.layers.Dense(1, activation='sigmoid', name='game_state_output_2')(interaction_logic)
-
-    # model = keras.Model(
-    #     inputs=[p1_input, p2_input, ball_input],
-    #     outputs=[paddle1_pos_output, paddle2_pos_output, ball_state_output, game_state_output],
-    # )
-
-
-
-    main_input = keras.Input(shape=(24,), name='main_input')
+    # Build the model.
+    main_input = keras.Input(shape=(56,), name='main_input')
 
     normalization_layer = keras.layers.Normalization(axis=-1, name='input_normalization')
     normalized_input = normalization_layer(main_input)
 
+    # Add some noise to help with model generalization.
+    noisy_input = keras.layers.GaussianNoise(stddev=0.01)(normalized_input, training=True)
+
     # Branch for the paddle1 features.
-    paddle1_features = keras.ops.take(normalized_input, indices=[0, 4, 6, 10, 12, 16, 18, 22], axis=1)
-    paddle1_branch = keras.layers.Dense(32, activation='relu', name='paddle1_1')(paddle1_features)
+    paddle1_features = keras.ops.take(noisy_input, indices=[0, 4, 6, 10, 12, 16, 18, 22], axis=1)
+    paddle1_branch = keras.layers.Dense(64, activation='relu', name='paddle1_1')(paddle1_features)
     
     # Branch for the paddle2 features.
-    paddle2_features = keras.ops.take(normalized_input, indices=[1, 5, 7, 11, 13, 17, 19, 23], axis=1)
-    paddle2_branch = keras.layers.Dense(32, activation='relu', name='paddle2_1')(paddle2_features)
+    paddle2_features = keras.ops.take(noisy_input, indices=[1, 5, 7, 11, 13, 17, 19, 23], axis=1)
+    paddle2_branch = keras.layers.Dense(64, activation='relu', name='paddle2_1')(paddle2_features)
     
-    # Branch for ball features.
-    ball_features = keras.ops.take(normalized_input, indices=[2, 3, 8, 9, 14, 15, 20, 21], axis=1)
-    ball_branch = keras.layers.Reshape((4, 2))(ball_features)
-    ball_branch = keras.layers.Conv1D(filters=32, kernel_size=2, activation='relu', name='ball_conv1d_1')(ball_branch)
-    ball_branch = keras.layers.MaxPooling1D(pool_size=2)(ball_branch)
+    # Branch for ball features, including new engineered features.
+    ball_indices = [2, 3, 24, 25, 26, 27, 28, 29, 30, 31,  # Frame 1: x, y, dx, dy, dl, dr, dt, db, c1, c2
+                    8, 9, 32, 33, 34, 35, 36, 37, 38, 39,  # Frame 2
+                    14, 15, 40, 41, 42, 43, 44, 45, 46, 47,  # Frame 3
+                    20, 21, 48, 49, 50, 51, 52, 53, 54, 55]  # Frame 4
+    ball_features = keras.ops.take(noisy_input, indices=ball_indices, axis=1)
+    ball_branch = keras.layers.Reshape((4, 10))(ball_features)
+    ball_branch = keras.layers.MultiHeadAttention(num_heads=4, key_dim=32)(ball_branch, ball_branch)
+    ball_branch = keras.layers.LayerNormalization()(ball_branch)
     ball_branch = keras.layers.Flatten()(ball_branch)
-    ball_branch = keras.layers.Dense(64, activation='relu', name='ball_1')(ball_branch)
-    ball_branch = keras.layers.Dense(64, activation='relu', name='ball_2')(ball_branch)
-    
-    # ball_branch = keras.layers.Dense(64, activation='relu', name='ball_1')(ball_features)
-    # ball_branch = keras.layers.Dense(64, activation='relu', name='ball_2')(ball_branch)
-    # ball_branch = keras.layers.Dense(64, activation='relu', name='ball_3')(ball_branch)
+    ball_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(alpha=0.1), name='ball_1')(ball_branch)
+    ball_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(alpha=0.1), name='ball_2')(ball_branch)
     
     # Combine ball with paddle features.
     combined_features = keras.layers.Concatenate(name='concatenate_branches')([ball_branch, paddle1_branch, paddle2_branch])
-    shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_1')(combined_features)
-    shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_2')(shared_branch)
-    shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_3')(shared_branch)
+    shared_branch = keras.layers.Reshape((1, -1))(combined_features)
+    shared_branch = keras.layers.LSTM(128, return_sequences=False, name='ball_paddle_lstm')(shared_branch)
+    shared_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(alpha=0.1), name='ball_paddle_dense')(shared_branch)
+    shared_branch = keras.layers.Dropout(0.2, name='ball_paddle_dropout')(shared_branch)
+    # shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_1')(combined_features)
+    # shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_2')(shared_branch)
+    # shared_branch = keras.layers.Dense(64, activation='relu', name='ball_paddle_3')(shared_branch)
 
     paddle1_pos_output = keras.layers.Dense(1, activation='linear', name='paddle1_output_1')(paddle1_branch)
     paddle2_pos_output = keras.layers.Dense(1, activation='linear', name='paddle2_output_1')(paddle2_branch)
@@ -240,27 +226,50 @@ else:
         outputs=[paddle1_pos_output, paddle2_pos_output, ball_state_output, game_state_output],
     )
 
-
-
     # Compile the model.
     learning_rate_schedule = keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=0.001,
         decay_steps=30000,
         decay_rate=0.96
     )
-    optimizer = keras.optimizers.Adam(learning_rate=learning_rate_schedule)
+    optimizer = keras.optimizers.AdamW(learning_rate=learning_rate_schedule)
     
     model.compile(optimizer=optimizer, 
         loss={
             'paddle1_output_1': 'mse',
             'paddle2_output_1': 'mse',
-            'ball_output_2': 'mse',
+            'ball_output_2': keras.losses.Huber(delta=3.0),
             'game_state_output_2': 'binary_crossentropy'
         }
     )
 
 # Print the model summary.
 model.summary()
+
+# Find edge cases for oversampling.
+bounce_indices = []
+for i in range(len(train_x)):
+    # Extract frame 4 ball position
+    ball_x_4, ball_y_4 = train_x[i][20], train_x[i][21]
+    ball_x_5, ball_y_5 = train_y_ball_state[i]
+    # Check for y-bounce (top/bottom)
+    if (ball_y_4 <= BALL_Y_MIN + 3 and ball_y_5 > ball_y_4) or (ball_y_4 >= BALL_Y_MAX - 3 and ball_y_5 < ball_y_4):
+        bounce_indices.append(i)
+    # Check for x-bounce (paddle hit) or game end
+    elif (ball_x_4 <= BALL_X_MIN + 3 and ball_x_5 > ball_x_4) or (ball_x_4 >= BALL_X_MAX - 3 and ball_x_5 < ball_x_4):
+        bounce_indices.append(i)
+    elif train_y_game_state[i][0] == 1:
+        bounce_indices.append(i)
+
+# Oversample: append copies of bounce sequences.
+oversample_factor = 6
+for idx in bounce_indices:
+    for _ in range(oversample_factor - 1):
+        train_x.append(train_x[idx])
+        train_y_paddle1_pos.append(train_y_paddle1_pos[idx])
+        train_y_paddle2_pos.append(train_y_paddle2_pos[idx])
+        train_y_ball_state.append(train_y_ball_state[idx])
+        train_y_game_state.append(train_y_game_state[idx])
 
 # Prepare the training data.
 train_x = np.asarray(train_x).astype('float32')
