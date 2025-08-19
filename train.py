@@ -53,7 +53,7 @@ print ("Reading in game data ({0})...".format(datetime.datetime.now()))
 
 files1 = glob.glob("data/game_data_*.txt")
 files2 = glob.glob("data_sim/pong_training_data_*.txt")
-all_files = files1 + files2
+all_files = files1 #+ files2
 
 for filename in all_files:
     # Read the game data into memory.
@@ -166,7 +166,7 @@ for filename in all_files:
 
         train_y_paddle1_pos.append([paddle1_pos_5])
         train_y_paddle2_pos.append([paddle2_pos_5])
-        train_y_ball_state.append([ball_x_5, ball_y_5])
+        train_y_ball_state.append([ball_x_5 - ball_x_4, ball_y_5 - ball_y_4])
         train_y_game_state.append([game_state_5])
 
 print("Done reading in game data ({0}).".format(datetime.datetime.now()))
@@ -176,6 +176,15 @@ if CONTINUE_TRAINING_MODEL != "":
     model = keras.models.load_model(CONTINUE_TRAINING_MODEL)
 
 else:
+    def positional_encoding(length, d_model):
+        pos = np.arange(length)[:, np.newaxis]
+        i = np.arange(d_model)[np.newaxis, :]
+        angle_rads = pos / np.power(10000, (2 * (i // 2)) / np.float32(d_model))
+        angle_rads[:, 0::2] = np.sin(angle_rads[:, 0::2])
+        angle_rads[:, 1::2] = np.cos(angle_rads[:, 1::2])
+        pos_encoding = angle_rads[np.newaxis, ...]
+        return tf.cast(pos_encoding, dtype=tf.float32)
+
     # Build the model.
     main_input = keras.Input(shape=(56,), name='main_input')
 
@@ -193,7 +202,7 @@ else:
     paddle2_features = keras.ops.take(noisy_input, indices=[1, 5, 7, 11, 13, 17, 19, 23], axis=1)
     paddle2_branch = keras.layers.Dense(64, activation='relu', name='paddle2_1')(paddle2_features)
     
-    # Branch for ball features, including new engineered features.
+    # Branch for ball features, including engineered features.
     ball_indices = [2, 3, 24, 25, 26, 27, 28, 29, 30, 31,  # Frame 1: x, y, dx, dy, dl, dr, dt, db, c1, c2
                     8, 9, 32, 33, 34, 35, 36, 37, 38, 39,  # Frame 2
                     14, 15, 40, 41, 42, 43, 44, 45, 46, 47,  # Frame 3
@@ -206,13 +215,20 @@ else:
     ball_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(alpha=0.1), name='ball_1')(ball_branch)
     ball_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(alpha=0.1), name='ball_2')(ball_branch)
     
-    # Combine ball with paddle features.
+    # Combine ball with paddle features (for hit/miss detection).
     combined_features = keras.layers.Concatenate(name='concatenate_branches')([ball_branch, paddle1_branch, paddle2_branch])
-    shared_branch = keras.layers.Reshape((1, -1))(combined_features)
-    shared_branch = keras.layers.LSTM(128, return_sequences=False, name='ball_paddle_lstm')(shared_branch)
-    shared_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(alpha=0.1), name='ball_paddle_dense')(shared_branch)
-    shared_branch = keras.layers.Dropout(0.2, name='ball_paddle_dropout')(shared_branch)
-    
+    combined_features = keras.layers.Dense(32, activation='relu')(combined_features)  # Project to common dimension.
+    combined_features = keras.layers.Reshape((4, 32))(keras.layers.RepeatVector(4)(combined_features))  # Repeat to create 4 time steps.
+    pos_encoding = positional_encoding(4, 32)
+    combined_features += pos_encoding
+    shared_branch = keras.layers.MultiHeadAttention(num_heads=4, key_dim=32)(combined_features, combined_features)
+    shared_branch = keras.layers.LayerNormalization()(shared_branch)
+    shared_branch = keras.layers.Dense(128, activation=keras.layers.LeakyReLU(alpha=0.1))(shared_branch)
+    shared_branch = keras.layers.Dropout(0.3)(shared_branch)
+    shared_branch = keras.layers.Flatten()(shared_branch)
+    shared_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(alpha=0.1), name='shared_dense')(shared_branch)
+
+    # Output heads.
     paddle1_pos_output = keras.layers.Dense(1, activation='linear', name='paddle1_output_1')(paddle1_branch)
     paddle2_pos_output = keras.layers.Dense(1, activation='linear', name='paddle2_output_1')(paddle2_branch)
     ball_state_output = keras.layers.Dense(2, activation='linear', name='ball_output_2')(shared_branch)
@@ -235,7 +251,7 @@ else:
         loss={
             'paddle1_output_1': 'mse',
             'paddle2_output_1': 'mse',
-            'ball_output_2': keras.losses.Huber(delta=3.0),
+            'ball_output_2': 'mse', # keras.losses.Huber(delta=3.0),
             'game_state_output_2': 'binary_crossentropy'
         }
     )
