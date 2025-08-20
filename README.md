@@ -42,8 +42,6 @@ Finally, the paddle positions, ball position, and game state (normal/point score
 
 The [inference script](https://github.com/nickbild/game_clone/blob/main/neural_pong.py) is used to play the game. It is given a set of 4 hard coded time points of input data initally to make the first prediction with. The results of the prediction are used to position elements on the screen. From that point forward, predictions move backward into the historical data that the model predicts the next frame from, along with keyboard data that is fed in to represent the user inputs. This process continues ad infinitum, with all logic being contained in the trained model. The inference script just handles drawing elements to the screen where the network says they should go — it contains no game logic whatsoever.
 
-## Media
-
 ## About the Author
 
 [Nick A. Bild, MS](https://nickbild79.firebaseapp.com/#!/)
