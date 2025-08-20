@@ -8,7 +8,7 @@ PADDLE_HALF_HEIGHT = 50
 
 
 with open("game_data_misses.txt", 'w') as f:
-    for _ in range(5000):
+    for _ in range(25000):
         ###
         # Left paddle miss.
         ###
