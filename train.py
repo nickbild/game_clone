@@ -7,7 +7,7 @@ import glob
 
 
 MSE_THRESHOLD = 0.00000001
-CONTINUE_TRAINING_MODEL = ""
+CONTINUE_TRAINING_MODEL = "pong.keras"
 
 
 class stopCallback(keras.callbacks.Callback): 
@@ -74,8 +74,8 @@ for filename in all_files:
 
     # Create the training data structure.
     step = 1
-    # if filename.endswith("game_data_100.txt"):
-    #     step = 5
+    if filename.endswith("game_data_misses.txt"):
+        step = 5
     
     for pos in range(0, len(data)-4, step):
         paddle1_pos_1 = data[pos][0] 
@@ -113,14 +113,25 @@ for filename in all_files:
         game_state_5 = data[pos+4][6]
 
         # Compute ball deltas (velocities)
-        delta_x_1 = ball_x_2 - ball_x_1
-        delta_y_1 = ball_y_2 - ball_y_1
-        delta_x_2 = ball_x_3 - ball_x_2
-        delta_y_2 = ball_y_3 - ball_y_2
-        delta_x_3 = ball_x_4 - ball_x_3
-        delta_y_3 = ball_y_4 - ball_y_3
-        delta_x_4 = delta_x_3  # Repeat last known delta for frame 4
-        delta_y_4 = delta_y_3
+        delta_x_2 = ball_x_2 - ball_x_1
+        delta_y_2 = ball_y_2 - ball_y_1
+        
+        delta_x_3 = ball_x_3 - ball_x_2
+        delta_y_3 = ball_y_3 - ball_y_2
+        
+        delta_x_4 = ball_x_4 - ball_x_3
+        delta_y_4 = ball_y_4 - ball_y_3
+
+        # Handle beginning of dataset.
+        if pos > 0 and step == 1:
+            ball_x_0 = data[pos-1][2]
+            ball_y_0 = data[pos-1][3]
+
+            delta_x_1 = ball_x_1 - ball_x_0
+            delta_y_1 = ball_y_1 - ball_y_0
+        else:
+            delta_x_1 = delta_x_2
+            delta_y_1 = delta_y_2
 
         # Compute normalized distances to boundaries and paddle coverages for each frame
         # Frame 1
@@ -183,7 +194,9 @@ else:
         angle_rads[:, 0::2] = np.sin(angle_rads[:, 0::2])
         angle_rads[:, 1::2] = np.cos(angle_rads[:, 1::2])
         pos_encoding = angle_rads[np.newaxis, ...]
+        
         return tf.cast(pos_encoding, dtype=tf.float32)
+
 
     # Build the model.
     main_input = keras.Input(shape=(56,), name='main_input')
@@ -242,7 +255,7 @@ else:
     # Compile the model.
     learning_rate_schedule = keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=0.001,
-        decay_steps=30000,
+        decay_steps=15000,
         decay_rate=0.96
     )
     optimizer = keras.optimizers.AdamW(learning_rate=learning_rate_schedule)
