@@ -1,6 +1,6 @@
 # Neural Pong
 
-I have cloned Pong with a neural network. The neural network is not playing Pong, it ***is*** Pong, and you play it.
+I have cloned Pong with a neural network. The neural network is not playing Pong, it ***is*** Pong, and you can play it.
 
 ![](https://raw.githubusercontent.com/nickbild/game_clone/refs/heads/main/media/logo.jpg)
 
