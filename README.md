@@ -18,7 +18,21 @@ What ended up finally working was a Transformer-based architecture with multiple
 
 ### Explaining the Model Architecture
 
+The model is defined in the [training script](https://github.com/nickbild/game_clone/blob/main/train.py).
 
+The model takes in a set of 4 sequential time points containing ball and paddle coordinates and user inputs. I also included a number of engineered features (e.g. ball velocity, distance from each edge, etc.) to aid the model in learning. The goal is to learn the physics of ball movement, bounces at the edges of the screen, paddle misses (point scored) or bounces, how to handle user input to adjust paddle positions, and to keep everything within bounds of the screen — basically everything that makes up a game of pong. This knowledge contained in the model is used to predict the next frame in the game, which then slides into the list of past frames as new predictions are made. So, intially a game is started with a seed of 4 time points of data, then the model does all the work. But that is for the inference stage, so I am getting ahead of myself.
+
+The architecture uses branching to separate paddle and ball processing (divide-and-conquer for independent dynamics) to avoid learning inapproprate interactions, temporal modeling via attention (to capture sequence dependencies across frames), and a shared branch for integrating interactions (e.g., paddle-ball collisions for bounces).
+
+A normalization layer scales features to mean=0, variance=1 based on training data statistics, because training would be much slower using absolute coordinates (much larger values). Next, a Gaussian noise layer adds a small amount random noise to normalized inputs during training only to make the model more robust to unseen data.
+
+Each player paddle has their own branch that is a simple feedforward layer that only looks at the paddle position and associated user input. This allows it to learn without being confused by irrelevant features.
+
+All ball-related features are also isolated and fed into a branch of the network. This uses the self-attention of a Transformer to pick out the fetaures that influence ball movement, which proved to be especially useful on edge cases (e.g. bounces) that other types of models just averaged out of existence.
+
+After that, another independent branch takes in the output of the ball and paddle branches and merges them for processing by another Transformer. This picks up more complex interactions between the ball and paddle.
+
+Finally, the paddle positions, ball position, and game state (normal/point scored) are predicted for the next frame.
 
 ## Media
 
