@@ -27,8 +27,19 @@ pygame.display.set_caption('Pong')
 def ball_init():
     global ball_pos, ball_vel
     ball_pos = [WIDTH/2, HEIGHT/2]
-    horz = 3
-    vert = 3
+
+    # Randmomize the initial position of the ball within a certain range.
+    x_adjust = random.randint(0, 100) * 3
+    direction = random.choice([-1, 1])
+    ball_pos[0] = ball_pos[0] + (x_adjust * direction)
+    y_adjust = random.randint(0, 67) * 3
+    direction = random.choice([-1, 1])
+    ball_pos[1] = ball_pos[1] + (y_adjust * direction)
+
+    direction = random.choice([-1, 1])
+    horz = 3 * direction
+    direction = random.choice([-1, 1])
+    vert = 3 * direction
             
     ball_vel = [horz,-vert]
 
@@ -43,6 +54,10 @@ def init():
 
 
 def point_scored():
+    f.write("{0} {1} {2} {3} {4} {5} 1\n".format(int(paddle1_pos[1]), int(paddle2_pos[1]), int(ball_pos[0]), int(ball_pos[1]), int(paddle1_vel), int(paddle2_vel)))
+    # f.write("{0} {1} {2} {3} {4} {5} 1\n".format(int(paddle1_pos[1]), int(paddle2_pos[1]), int(ball_pos[0]), int(ball_pos[1]), int(paddle1_vel), int(paddle2_vel)))
+    # f.write("{0} {1} {2} {3} {4} {5} 1\n".format(int(paddle1_pos[1]), int(paddle2_pos[1]), int(ball_pos[0]), int(ball_pos[1]), int(paddle1_vel), int(paddle2_vel)))
+
     while True:
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -135,7 +150,7 @@ while True:
             
     pygame.display.update()
 
-    f.write("{0} {1} {2} {3} {4} {5}\n".format(int(paddle1_pos[1]), int(paddle2_pos[1]), int(ball_pos[0]), int(ball_pos[1]), int(paddle1_vel), int(paddle2_vel)))
+    f.write("{0} {1} {2} {3} {4} {5} 0\n".format(int(paddle1_pos[1]), int(paddle2_pos[1]), int(ball_pos[0]), int(ball_pos[1]), int(paddle1_vel), int(paddle2_vel)))
 
     if ball_pos[0] == 403 and ball_pos[1] == 297 and ball_vel[0] == 3 and ball_vel[1] == -3:
         print("STARTING POINT REACHED")

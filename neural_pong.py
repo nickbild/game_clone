@@ -138,14 +138,14 @@ while True:
     game_over_probability = new_prediction[3][0][0]
 
     # Check for game over state and reset if needed
-    if game_over_probability > 0.5: # Use a threshold
-         game_reset()
+    # if game_over_probability > 0.5: # Use a threshold
+    #      game_reset()
         
     # --- Step 3: Create the new frame using predicted and live data ---
     new_p1_pos = predicted_p1_pos[0]
     new_p2_pos = predicted_p2_pos[0]
-    new_ball_x = predicted_ball_state[0]
-    new_ball_y = predicted_ball_state[1]
+    new_ball_x = predicted_ball_state[0] + raw_past_positions[3][2]
+    new_ball_y = predicted_ball_state[1] + raw_past_positions[3][3]
 
     # Build the complete new frame.
     new_frame = np.array([
