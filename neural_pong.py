@@ -86,18 +86,16 @@ def game_reset():
 
 
 while True:
-    # --- Step 1: Process the raw_past_positions to create the input vector ---
-    
     # Initialize list for the new features.
     new_features = []
 
-    # Iterate through the first 3 frames to compute deltas
+    # Iterate through the first 3 frames to compute deltas.
     for i in range(3):
         # ball deltas (velocities)
         delta_x = raw_past_positions[i+1][2] - raw_past_positions[i][2]
         delta_y = raw_past_positions[i+1][3] - raw_past_positions[i][3]
         
-        # normalized distances to boundaries and paddle coverages
+        # Normalized distances to boundaries and paddle coverages.
         ball_x, ball_y = raw_past_positions[i][2], raw_past_positions[i][3]
         p1_pos, p2_pos = raw_past_positions[i][0], raw_past_positions[i][1]
 
@@ -110,7 +108,7 @@ while True:
 
         new_features.extend([delta_x, delta_y, dist_left, dist_right, dist_top, dist_bottom, coverage_p1, coverage_p2])
 
-    # Handle the last frame (frame 4) with repeated deltas
+    # Handle the last frame (frame 4) with repeated deltas.
     last_delta_x = raw_past_positions[3][2] - raw_past_positions[2][2]
     last_delta_y = raw_past_positions[3][3] - raw_past_positions[2][3]
 
@@ -126,10 +124,10 @@ while True:
 
     new_features.extend([last_delta_x, last_delta_y, dist_left, dist_right, dist_top, dist_bottom, coverage_p1, coverage_p2])
     
-    # Combine original and new features into a single input vector
+    # Combine original and new features into a single input vector.
     full_input_vector = np.concatenate([raw_past_positions.flatten(), new_features], dtype=np.float32).reshape(1, 56)
 
-    # --- Step 2: Make the prediction ---
+    # Make the prediction.
     new_prediction = model.predict(full_input_vector, verbose=0)
     
     predicted_p1_pos = new_prediction[0][0]
@@ -137,11 +135,11 @@ while True:
     predicted_ball_state = new_prediction[2][0]
     game_over_probability = new_prediction[3][0][0]
 
-    # Check for game over state and reset if needed
-    # if game_over_probability > 0.5: # Use a threshold
-    #      game_reset()
+    # Check for game over state and reset if needed.
+    if game_over_probability > 0.5: # Use a threshold
+         game_reset()
         
-    # --- Step 3: Create the new frame using predicted and live data ---
+    # Create the new frame using predicted and live data.
     new_p1_pos = predicted_p1_pos[0]
     new_p2_pos = predicted_p2_pos[0]
     new_ball_x = predicted_ball_state[0] + raw_past_positions[3][2]
@@ -152,18 +150,18 @@ while True:
         new_p1_pos, new_p2_pos, new_ball_x, new_ball_y, paddle1_vel, paddle2_vel
     ], dtype=np.float32)
 
-    # --- Step 4: Update the raw_past_positions array with the new frame ---
+    # Update the raw_past_positions array with the new frame.
     raw_past_positions = np.roll(raw_past_positions, -1, axis=0)
     raw_past_positions[-1] = new_frame
     
-    # --- Step 5: Update Pygame display using the denormalized positions ---
+    # Update Pygame display using the denormalized positions.
     window.fill(BLACK)
     pygame.draw.circle(window, RED, [int(new_ball_x), int(new_ball_y)], BALL_RADIUS, 0)
     pygame.draw.polygon(window, RED, [[0, int(new_p1_pos) - HALF_PAD_HEIGHT], [0, int(new_p1_pos) + HALF_PAD_HEIGHT], [9, int(new_p1_pos) + HALF_PAD_HEIGHT], [9, int(new_p1_pos) - HALF_PAD_HEIGHT]], 0)
     pygame.draw.polygon(window, RED, [[790, int(new_p2_pos) - HALF_PAD_HEIGHT], [790, int(new_p2_pos) + HALF_PAD_HEIGHT], [799, int(new_p2_pos) + HALF_PAD_HEIGHT], [799, int(new_p2_pos) - HALF_PAD_HEIGHT]], 0)
     pygame.display.update()
 
-    # --- Capture user input and other events ---
+    # Capture user input and other events.
     for event in pygame.event.get():
         if event.type == KEYDOWN:
             keydown(event)
