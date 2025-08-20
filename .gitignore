@@ -2,3 +2,5 @@
 .vscode
 gen.py
 old
+data_sim/*
+

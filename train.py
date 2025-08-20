@@ -7,7 +7,7 @@ import glob
 
 
 MSE_THRESHOLD = 0.00000001
-CONTINUE_TRAINING_MODEL = "pong.keras"
+CONTINUE_TRAINING_MODEL = ""
 
 
 class stopCallback(keras.callbacks.Callback): 
@@ -51,9 +51,7 @@ y_range = BALL_Y_MAX - BALL_Y_MIN
 
 print ("Reading in game data ({0})...".format(datetime.datetime.now()))
 
-files1 = glob.glob("data/game_data_*.txt")
-files2 = glob.glob("data_sim/pong_training_data_*.txt")
-all_files = files1 #+ files2
+all_files = glob.glob("data/game_data_*.txt")
 
 for filename in all_files:
     # Read the game data into memory.
@@ -225,8 +223,8 @@ else:
     ball_branch = keras.layers.MultiHeadAttention(num_heads=4, key_dim=32)(ball_branch, ball_branch)
     ball_branch = keras.layers.LayerNormalization()(ball_branch)
     ball_branch = keras.layers.Flatten()(ball_branch)
-    ball_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(alpha=0.1), name='ball_1')(ball_branch)
-    ball_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(alpha=0.1), name='ball_2')(ball_branch)
+    ball_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(negative_slope=0.1), name='ball_1')(ball_branch)
+    ball_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(negative_slope=0.1), name='ball_2')(ball_branch)
     
     # Combine ball with paddle features (for hit/miss detection).
     combined_features = keras.layers.Concatenate(name='concatenate_branches')([ball_branch, paddle1_branch, paddle2_branch])
@@ -236,10 +234,10 @@ else:
     combined_features += pos_encoding
     shared_branch = keras.layers.MultiHeadAttention(num_heads=4, key_dim=32)(combined_features, combined_features)
     shared_branch = keras.layers.LayerNormalization()(shared_branch)
-    shared_branch = keras.layers.Dense(128, activation=keras.layers.LeakyReLU(alpha=0.1))(shared_branch)
+    shared_branch = keras.layers.Dense(128, activation=keras.layers.LeakyReLU(negative_slope=0.1))(shared_branch)
     shared_branch = keras.layers.Dropout(0.3)(shared_branch)
     shared_branch = keras.layers.Flatten()(shared_branch)
-    shared_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(alpha=0.1), name='shared_dense')(shared_branch)
+    shared_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(negative_slope=0.1), name='shared_dense')(shared_branch)
 
     # Output heads.
     paddle1_pos_output = keras.layers.Dense(1, activation='linear', name='paddle1_output_1')(paddle1_branch)
@@ -284,8 +282,8 @@ for i in range(len(train_x)):
     # Check for x-bounce (paddle hit) or game end
     elif (ball_x_4 <= BALL_X_MIN + 3 and ball_x_5 > ball_x_4) or (ball_x_4 >= BALL_X_MAX - 3 and ball_x_5 < ball_x_4):
         bounce_indices.append(i)
-    elif train_y_game_state[i][0] == 1:
-        bounce_indices.append(i)
+    # elif train_y_game_state[i][0] == 1:   # Synthetic data for this condition is now being generated.
+    #     bounce_indices.append(i)
 
 # Oversample: append copies of bounce sequences.
 oversample_factor = 6
