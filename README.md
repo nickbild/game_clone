@@ -29,7 +29,7 @@ The model takes in a set of 4 sequential time points containing ball and paddle 
 
 The architecture uses branching to separate paddle and ball processing (divide-and-conquer for independent dynamics) to avoid learning inappropriate interactions, temporal modeling via attention (to capture sequence dependencies across frames), and a shared branch for integrating interactions (e.g., paddle-ball collisions for bounces).
 
-A normalization layer scales features to mean=0, variance=1 based on training data statistics, because training would be much slower using absolute coordinates (much larger values). Next, a Gaussian noise layer adds a small amount of random noise to normalized inputs during training only to make the model more robust to unseen data.
+A normalization layer scales features to mean=0, variance=1 based on training data statistics, because training would be much slower using absolute coordinates (much larger values). Next, a Gaussian noise layer adds a small amount of random noise to normalized inputs during training only to make the model more robust to unseen data. This helps the model perform better when it is making new predictions based on a time sequence of past predictions (instead of ideal data captured from real games) to prevent small errors from being magnified over time.
 
 Each player paddle has their own branch that is a simple feedforward layer that only looks at the paddle position and associated user input. This allows it to learn without being confused by irrelevant features.
 
