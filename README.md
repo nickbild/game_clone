@@ -4,12 +4,12 @@ I have cloned Pong with a neural network. The neural network is not playing Pong
 
 ![](https://raw.githubusercontent.com/nickbild/game_clone/refs/heads/main/media/logo.jpg)
 
+After designing a model architecture that is well-suited to learning the physics of the game, I was able to teach it all of the game rules and how to interpret user inputs by showing it hundreds of thousands of sequential frames captured during normal gameplay.
+
 <p align="center">
     <img src="https://raw.githubusercontent.com/nickbild/game_clone/refs/heads/main/media/playing.gif">
     <br><i>The neural network playing Pong</i> 
 </p>
-
-After designing a model architecture that is well-suited to learning the physics of the game, I was able to teach it all of the game rules and how to interpret user inputs by showing it hundreds of thousands of sequential frames captured during normal gameplay.
 
 ## How It Works
 
