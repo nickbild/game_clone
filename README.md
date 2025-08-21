@@ -52,7 +52,14 @@ All ball-related features are also isolated and fed into a branch of the network
 
 After that, another independent branch takes in the output of the ball and paddle branches and merges them for processing by another Transformer. This picks up more complex interactions between the ball and paddle.
 
-Finally, the paddle positions, ball position, and game state (normal/point scored) are predicted for the next frame.
+Finally, the paddle positions, ball position deltas, and game state (normal/point scored) are predicted for the next frame.
+
+```python
+train_y_paddle1_pos.append([paddle1_pos_5])
+train_y_paddle2_pos.append([paddle2_pos_5])
+train_y_ball_state.append([ball_x_5 - ball_x_4, ball_y_5 - ball_y_4])
+train_y_game_state.append([game_state_5])
+```
 
 ### Playing the Model
 
