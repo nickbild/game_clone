@@ -4,7 +4,7 @@ I cloned Pong with a neural network. The neural network is not playing Pong, it 
 
 ![](https://raw.githubusercontent.com/nickbild/game_clone/refs/heads/main/media/logo.jpg)
 
-**TL;DR**: I designed a machine learning model that is well-suited to learning the physics of the game Pong. I trained that model by showing it data from hundreds of thousands of sequential frames captured during normal gameplay. As a result, the model learned the deceptively complex rules and physics of the game. By feeding control inputs (for the paddles) into the model, you can play a game of Pong.
+**TL;DR:** I designed a machine learning model that is well-suited to learning the physics of the game Pong. I trained that model by showing it data from hundreds of thousands of sequential frames captured during normal gameplay. As a result, the model learned the deceptively complex rules and physics of the game. By feeding control inputs (for the paddles) into the model, you can play a game of Pong.
 
 <p align="center">
     <img src="https://raw.githubusercontent.com/nickbild/game_clone/refs/heads/main/media/playing.gif">
