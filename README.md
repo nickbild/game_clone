@@ -21,6 +21,8 @@ Whoah! All that to learn Pong? It may seem like overkill, but the physics are de
 
 What ended up finally working was a Transformer-based architecture with multiple isolated branches and output heads. Next I'll go into a deep-dive of the model.
 
+Ultimately, I would like to do this project by using images of the game screen as training data, and have the model predict the next image frame. That is actually the direction I started in for this project, but I soon realized that this goal was out of reach because I do not have a GPU. Some people are GPU poor, but I'm GPU broke.
+
 ### Explaining the Model Architecture
 
 The model is defined in the [training script](https://github.com/nickbild/game_clone/blob/main/train.py).
