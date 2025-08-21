@@ -103,10 +103,11 @@ shared_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(negativ
 Finally, the paddle positions, ball position deltas, and game state (normal/point scored) are predicted for the next frame.
 
 ```python
-train_y_paddle1_pos.append([paddle1_pos_5])
-train_y_paddle2_pos.append([paddle2_pos_5])
-train_y_ball_state.append([ball_x_5 - ball_x_4, ball_y_5 - ball_y_4])
-train_y_game_state.append([game_state_5])
+# Output heads.
+paddle1_pos_output = keras.layers.Dense(1, activation='linear', name='paddle1_output_1')(paddle1_branch)
+paddle2_pos_output = keras.layers.Dense(1, activation='linear', name='paddle2_output_1')(paddle2_branch)
+ball_state_output = keras.layers.Dense(2, activation='linear', name='ball_output_2')(shared_branch)
+game_state_output = keras.layers.Dense(1, activation='sigmoid', name='game_state_output_2')(shared_branch)
 ```
 
 ### Playing the Model
