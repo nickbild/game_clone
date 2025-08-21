@@ -27,7 +27,20 @@ Ultimately, I would like to do another version of this project using images of t
 
 The model is defined in the [training script](https://github.com/nickbild/game_clone/blob/main/train.py).
 
-The model takes in a set of 4 sequential time points containing ball and paddle coordinates and user inputs. I also included a number of engineered features (e.g. ball velocity, distance from each edge, etc.) to aid the model in learning. The goal is to learn the physics of ball movement, bounces at the edges of the screen, paddle misses (point scored) or bounces, how to handle user input to adjust paddle positions, and to keep everything within bounds of the screen — basically everything that makes up a game of Pong. This knowledge contained in the model is used to predict the next frame in the game, which then slides into the list of past frames as new predictions are made. So, initially a game is started with a seed of 4 time points of data, then the model does all the work. But that is for the inference stage, so I am getting ahead of myself.
+The model takes in a set of 4 sequential time points containing ball and paddle coordinates and user inputs. I also included a number of engineered features (e.g. ball velocity, distance from each edge, etc.) to aid the model in learning. 
+
+```python
+train_x.append([paddle1_pos_1, paddle2_pos_1, ball_x_1, ball_y_1, paddle1_vel_1, paddle2_vel_1,
+    paddle1_pos_2, paddle2_pos_2, ball_x_2, ball_y_2, paddle1_vel_2, paddle2_vel_2,
+    paddle1_pos_3, paddle2_pos_3, ball_x_3, ball_y_3, paddle1_vel_3, paddle2_vel_3,
+    paddle1_pos_4, paddle2_pos_4, ball_x_4, ball_y_4, paddle1_vel_4, paddle2_vel_4,
+    delta_x_1, delta_y_1, dist_left_1, dist_right_1, dist_top_1, dist_bottom_1, coverage_p1_1, coverage_p2_1,
+    delta_x_2, delta_y_2, dist_left_2, dist_right_2, dist_top_2, dist_bottom_2, coverage_p1_2, coverage_p2_2,
+    delta_x_3, delta_y_3, dist_left_3, dist_right_3, dist_top_3, dist_bottom_3, coverage_p1_3, coverage_p2_3,
+    delta_x_4, delta_y_4, dist_left_4, dist_right_4, dist_top_4, dist_bottom_4, coverage_p1_4, coverage_p2_4])
+```
+
+The goal is to learn the physics of ball movement, bounces at the edges of the screen, paddle misses (point scored) or bounces, how to handle user input to adjust paddle positions, and to keep everything within bounds of the screen — basically everything that makes up a game of Pong. This knowledge contained in the model is used to predict the next frame in the game, which then slides into the list of past frames as new predictions are made. So, initially a game is started with a seed of 4 time points of data, then the model does all the work. But that is for the inference stage, so I am getting ahead of myself.
 
 The architecture uses branching to separate paddle and ball processing (divide-and-conquer for independent dynamics) to avoid learning inappropriate interactions, temporal modeling via attention (to capture sequence dependencies across frames), and a shared branch for integrating interactions (e.g., paddle-ball collisions for bounces).
 
