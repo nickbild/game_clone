@@ -11,6 +11,9 @@ I cloned Pong with a neural network. The neural network is not playing Pong, it 
     <br><i>The neural network became Pong</i> 
 </p>
 
+**Check out the video on YouTube:**
+<a href="https://www.youtube.com/watch?v=P0F_hZC6uow">![](https://raw.githubusercontent.com/nickbild/game_clone/refs/heads/main/media/logo_43_yt.jpg)</a>
+
 *This work is (obviously) not connected to Atari or the original Pong game in any way. I am using the term 'Pong' to describe a Pong-like table tennis video game.*
 
 ## How It Works
