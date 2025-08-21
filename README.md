@@ -46,11 +46,59 @@ The architecture uses branching to separate paddle and ball processing (divide-a
 
 A normalization layer scales features to mean=0, variance=1 based on training data statistics, because training would be much slower using absolute coordinates (much larger values). Next, a Gaussian noise layer adds a small amount of random noise to normalized inputs during training only to make the model more robust to unseen data. This helps the model perform better when it is making new predictions based on a time sequence of past predictions (instead of ideal data captured from real games) to prevent small errors from being magnified over time.
 
-Each player paddle has their own branch that is a simple feedforward layer that only looks at the paddle position and associated user input. This allows it to learn without being confused by irrelevant features.
+```python
+normalization_layer = keras.layers.Normalization(axis=-1, name='input_normalization')
+normalized_input = normalization_layer(main_input)
+
+# Add some noise to help with model generalization.
+noisy_input = keras.layers.GaussianNoise(stddev=0.01)(normalized_input, training=True)
+```
+
+Each player paddle has its own branch that is a simple feedforward layer that only looks at the paddle position and associated user input. This allows it to learn without being confused by irrelevant features.
+
+```python
+# Branch for the paddle1 features.
+paddle1_features = keras.ops.take(noisy_input, indices=[0, 4, 6, 10, 12, 16, 18, 22], axis=1)
+paddle1_branch = keras.layers.Dense(64, activation='relu', name='paddle1_1')(paddle1_features)
+
+# Branch for the paddle2 features.
+paddle2_features = keras.ops.take(noisy_input, indices=[1, 5, 7, 11, 13, 17, 19, 23], axis=1)
+paddle2_branch = keras.layers.Dense(64, activation='relu', name='paddle2_1')(paddle2_features)
+```
 
 All ball-related features are also isolated and fed into a branch of the network. This uses the self-attention of a Transformer to pick out the features that influence ball movement, which proved to be especially useful on edge cases (e.g. bounces) that other types of models just averaged out of existence.
 
+```python
+# Branch for ball features, including engineered features.
+ball_indices = [2, 3, 24, 25, 26, 27, 28, 29, 30, 31,  # Frame 1: x, y, dx, dy, dl, dr, dt, db, c1, c2
+                8, 9, 32, 33, 34, 35, 36, 37, 38, 39,  # Frame 2
+                14, 15, 40, 41, 42, 43, 44, 45, 46, 47,  # Frame 3
+                20, 21, 48, 49, 50, 51, 52, 53, 54, 55]  # Frame 4
+ball_features = keras.ops.take(noisy_input, indices=ball_indices, axis=1)
+ball_branch = keras.layers.Reshape((4, 10))(ball_features)
+ball_branch = keras.layers.MultiHeadAttention(num_heads=4, key_dim=32)(ball_branch, ball_branch)
+ball_branch = keras.layers.LayerNormalization()(ball_branch)
+ball_branch = keras.layers.Flatten()(ball_branch)
+ball_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(negative_slope=0.1), name='ball_1')(ball_branch)
+ball_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(negative_slope=0.1), name='ball_2')(ball_branch)
+```
+
 After that, another independent branch takes in the output of the ball and paddle branches and merges them for processing by another Transformer. This picks up more complex interactions between the ball and paddle.
+
+```python
+# Combine ball with paddle features (for hit/miss detection).
+combined_features = keras.layers.Concatenate(name='concatenate_branches')([ball_branch, paddle1_branch, paddle2_branch])
+combined_features = keras.layers.Dense(32, activation='relu')(combined_features)  # Project to common dimension.
+combined_features = keras.layers.Reshape((4, 32))(keras.layers.RepeatVector(4)(combined_features))  # Repeat to create 4 time steps.
+pos_encoding = positional_encoding(4, 32)
+combined_features += pos_encoding
+shared_branch = keras.layers.MultiHeadAttention(num_heads=4, key_dim=32)(combined_features, combined_features)
+shared_branch = keras.layers.LayerNormalization()(shared_branch)
+shared_branch = keras.layers.Dense(128, activation=keras.layers.LeakyReLU(negative_slope=0.1))(shared_branch)
+shared_branch = keras.layers.Dropout(0.3)(shared_branch)
+shared_branch = keras.layers.Flatten()(shared_branch)
+shared_branch = keras.layers.Dense(64, activation=keras.layers.LeakyReLU(negative_slope=0.1), name='shared_dense')(shared_branch)
+```
 
 Finally, the paddle positions, ball position deltas, and game state (normal/point scored) are predicted for the next frame.
 
