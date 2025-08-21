@@ -8,7 +8,7 @@ After designing a model architecture that is well-suited to learning the physics
 
 <p align="center">
     <img src="https://raw.githubusercontent.com/nickbild/game_clone/refs/heads/main/media/playing.gif">
-    <br><i>The neural network playing Pong</i> 
+    <br><i>The neural network became Pong</i> 
 </p>
 
 ## How It Works
