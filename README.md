@@ -17,7 +17,7 @@ I wrote a simple [Pong-style game](https://github.com/nickbild/game_clone/blob/m
 
 ![](https://raw.githubusercontent.com/nickbild/game_clone/refs/heads/main/model_architecture.png) 
 
-Whoah! All that to learn Pong? It may seem like overkill, but the physics are actually difficult to learn. I started out thinking I'd have this running in a few hours with a simple feedforward network, but it ended up taking months of spare time to get it working. The velocity inversion of the ball at bounces, the paddle hits and misses, and the issue of paddle movement and ball movement inappropriately being linked together, for instance, was very, very hard for any model I tried to learn. Aside from basic feedforward architectures, I also tried LSTM/GRU layers, convolutional layers, and (as it felt, anyway) just about everything else.
+Whoah! All that to learn Pong? It may seem like overkill, but the physics are deceptively difficult to learn. I started out thinking I'd have this running in a few hours with a simple feedforward network, but it ended up taking months of spare time to get it working. The velocity inversion of the ball at bounces, the paddle hits and misses, and the issue of paddle movement and ball movement inappropriately being linked together, for instance, was very, very hard for any model I tried to learn. Aside from basic feedforward architectures, I also tried LSTM/GRU layers, convolutional layers, and (as it felt, anyway) just about everything else.
 
 What ended up finally working was a Transformer-based architecture with multiple isolated branches and output heads. Next I'll go into a deep-dive of the model.
 
